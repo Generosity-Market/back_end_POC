@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/JGordy/back_end_POC.git"
+    "url": "https://github.com/Generosity-Market/back_end_POC.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/JGordy/back_end_POC/issues"
+    "url": "https://github.com/Generosity-Market/back_end_POC/issues"
   },
-  "homepage": "https://github.com/JGordy/back_end_POC#readme",
+  "homepage": "https://github.com/Generosity-Market/back_end_POC#readme",
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
