@@ -15,5 +15,15 @@
   "bugs": {
     "url": "https://github.com/JGordy/back_end_POC/issues"
   },
-  "homepage": "https://github.com/JGordy/back_end_POC#readme"
+  "homepage": "https://github.com/JGordy/back_end_POC#readme",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "morgan": "^1.9.0",
+    "passport": "^0.4.0",
+    "passport-http": "^0.3.0",
+    "path": "^0.12.7",
+    "pg": "^7.4.0",
+    "sequelize": "^4.28.1"
+  }
 }
