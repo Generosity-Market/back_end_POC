@@ -11,11 +11,11 @@ passport.use(new BasicStrategy(
     if (userPassword !== password) { return done(null, false); }
     return done(null, username);
   }
-))
+));
 
 router.get('/', passport.authenticate('basic', {session: false}), function(req, res) {
   res.status(200).send('This is where I will have my API documentation');
-})
+});
 
 
 
