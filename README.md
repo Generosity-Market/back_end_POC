@@ -2,10 +2,6 @@
 
 ## Tech Stack
 
-### Front End
-- React
-- Redux
-
 ### Api
 - Node
 - PostgreSQL
