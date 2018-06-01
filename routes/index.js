@@ -1,10 +1,11 @@
 const express       = require('express');
 const models        = require('../models/index');
 const passport      = require('passport');
+const bcrypt        = require("bcrypt");
+const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
 const router        = express.Router();
 
-const users = {'clinton':'test'};
 
 passport.use(new BasicStrategy(
   function(username, password, done) {
@@ -14,6 +15,12 @@ passport.use(new BasicStrategy(
     return done(null, username);
   }
 ));
+
+router.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 // Use this route for Api documentation
 router.get("/", function(req, res) {
@@ -104,6 +111,7 @@ router.delete('/user/:username', function(req, res) {
 })
 
 // getting the entire cause list with * and *
+// TODO change the models once we decide what they are
 router.get('/causes', function(req, res) {
   models.Cause.findAll({
     include: [{

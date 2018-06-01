@@ -12,10 +12,6 @@ const app = express();
 // below line is required for production app...setting the port
 app.set('port', (process.env.PORT || 3000));
 
-app.use(express.static(path.join(__dirname, "public")));
-
-app.engine("mustache", mustacheExpress());
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(morgan("dev"));
