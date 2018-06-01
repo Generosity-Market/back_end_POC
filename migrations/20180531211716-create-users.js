@@ -17,6 +17,14 @@ module.exports = {
         allowNull: false,
         unique: true
       },
+      password: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      salt: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
       street: {
         type: Sequelize.STRING,
         allowNull: false

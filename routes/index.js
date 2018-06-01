@@ -16,6 +16,7 @@ passport.use(new BasicStrategy(
   }
 ));
 
+// NOTE Allows CORS
 router.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -53,12 +54,9 @@ router.post('/login', function(req, res) {
 
 // signup route
 router.post('/signup', function(req, res) {
-  let username         = req.body.username;
-  let password         = req.body.password;
-  let email            = req.body.email;
-  let confirmPassword  = req.body.confirmPassword;
+  const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
 
-  if (!username || !password) {
+  if (!name || !password) {
     res.status(403).send({error: 'User name and password must not be blank.'})
   }
 
@@ -66,16 +64,32 @@ router.post('/signup', function(req, res) {
   let passwordHash = bcrypt.hashSync(password, salt)
 
   let newUser = {
+    name: name,
     email: email,
-    username: username,
     salt: salt,
-    password: passwordHash
+    password: passwordHash,
+    street: street,
+    city: city,
+    state: state,
+    zipcode: zipcode,
+    phone: phone,
+    backgroundImage: backgroundImage,
+    mainImage: mainImage
   }
+
+  console.log(newUser);
+
+// if preferences do something with the preferences
 
   if (password === confirmPassword) {
     models.User.create(newUser)
     .then(function(data) {
-      res.status('201').send(data);
+
+      models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
+      .then(function(preferences) {
+        res.status('201').send({User: data, preferences: preferences});
+      })
+      
     })
     .catch(function(error) {
       res.status('400').send({error: error});
