@@ -9,11 +9,15 @@ module.exports = (sequelize, DataTypes) => {
   Donation.associate = function(models) {
     Donation.belongsTo(models.Cause, {
       as: "Causes",
-      foreignKey: "causeID"
+      foreignKey: "id"
     })
     Donation.belongsTo(models.User, {
       as: "Users",
-      foreignKey: "userID"
+      foreignKey: "id"
+    })
+    Donation.hasMany(models.Comment, {
+      as: "Comments",
+      foreignKey: "donationID"
     })
   };
 

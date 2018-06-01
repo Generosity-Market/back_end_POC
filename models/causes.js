@@ -23,8 +23,12 @@ module.exports = (sequelize, DataTypes) => {
       as: "Organizations",
       foreignKey: "id"
     })
-    Cause.hasMany(models.Comment, {
-      as: "Comments",
+    Cause.hasMany(models.Preference, {
+      as: "Preferences",
+      foreignKey: "causeID"
+    })
+    Cause.hasMany(models.Donation, {
+      as: "Donations",
       foreignKey: "causeID"
     })
   };

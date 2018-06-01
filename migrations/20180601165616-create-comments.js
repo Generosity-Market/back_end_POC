@@ -16,11 +16,11 @@ module.exports = {
           key: "id"
         }
       },
-      causeID: {
+      donationID: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: "Causes",
+          model: "Donations",
           key: "id"
         }
       },

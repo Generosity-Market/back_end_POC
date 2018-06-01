@@ -6,7 +6,7 @@ const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
 const router        = express.Router();
 
-
+// Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
   function(username, password, done) {
     const userPassword = users[username];
@@ -16,7 +16,7 @@ passport.use(new BasicStrategy(
   }
 ));
 
-// NOTE Allows CORS
+// Allows CORS
 router.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -30,7 +30,7 @@ router.get("/", function(req, res) {
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
 
-// login route
+// Login route returns User data w/Preferences
 router.post('/login', function(req, res) {
   if ((!req.body.email) || (!req.body.password)) {
     res.status(403).send({error: 'Fields must not be empty.'})
@@ -38,7 +38,11 @@ router.post('/login', function(req, res) {
     models.User.findOne({
       where: {
         email: req.body.email
-      }
+      },
+      include: [{
+        model: models.Preference,
+        as: 'Preferences',
+      }]
     }).then(function(user) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
         var token = jwt.sign({ foo: 'bar' }, 'shhhhh');
@@ -52,7 +56,7 @@ router.post('/login', function(req, res) {
   }
 });
 
-// signup route
+// Signup route
 router.post('/signup', function(req, res) {
   const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
 
@@ -77,31 +81,30 @@ router.post('/signup', function(req, res) {
     mainImage: mainImage
   }
 
-  console.log(newUser);
-
-// if preferences do something with the preferences
-
   if (password === confirmPassword) {
-    models.User.create(newUser)
-    .then(function(data) {
-
-      models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
-      .then(function(preferences) {
-        res.status('201').send({User: data, preferences: preferences});
+      models.User.create(newUser)
+      .then(function(data) {
+          models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
+          .then(function(preferences) {
+              res.status('201').send({User: data, Preferences: preferences});
+          })
       })
-      
-    })
-    .catch(function(error) {
-      res.status('400').send({error: error});
-    });
+      .catch(function(error) {
+        res.status('400').send({error: error});
+      });
   } else {
-    res.status('403').send({error: "Passwords do not match.", body: req.body})
+      res.status('403').send({error: "Passwords do not match.", body: req.body})
   }
 });
 
-// get all users
+// Get all users w/Preferences
 router.get('/user', function(req, res) {
-  models.User.findAll({})
+  models.User.findAll({
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    }]
+  })
   .then(function(data) {
     res.status(200).json(data);
   })
@@ -110,9 +113,10 @@ router.get('/user', function(req, res) {
   })
 })
 
-// delete a user from the db
-//in the future we must delete associated data first
-router.delete('/user/:username', function(req, res) {
+
+// Delete a user from the db
+// NOTE In the future we must delete associated data first
+router.delete('/user/:name', function(req, res) {
   models.User.destroy({
     where: {username: req.params.username}
   })
@@ -124,17 +128,35 @@ router.delete('/user/:username', function(req, res) {
   });
 })
 
-// getting the entire cause list with * and *
-// TODO change the models once we decide what they are
-router.get('/causes', function(req, res) {
+// Create a cause
+router.post('/cause/new', function(req, res) {
+  const { roundImage, whiteText } = req.body;
+  const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
+
+  models.Cause.create(newCause)
+  .then(data => {
+      models.Preference.create({causeID: data.id, roundImage: roundImage, whiteText: whiteText})
+      .then(preferences => {
+          res.status('201').send({Cause: data, Preferences: preferences});
+      })
+  })
+})
+
+
+// Getting the entire cause list with Preferences, Donations and Comments
+router.get('/cause', function(req, res) {
   models.Cause.findAll({
     include: [{
-       model: models.Alternate,
-       as: 'Variable',
-       include: [{
-         model: models.Like, as: "Likes"
-       }]
-     }]
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Donation,
+      as: 'Donations',
+      include: [{
+        model: models.Comment,
+        as: 'Comments'
+      }]
+    }]
   })
   .then(function(data) {
     if (data) {
@@ -144,6 +166,7 @@ router.get('/causes', function(req, res) {
     }
   })
   .catch(function(err) {
+    console.log(err);
     res.status(500).json(err);
   })
 });
