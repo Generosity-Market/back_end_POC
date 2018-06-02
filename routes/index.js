@@ -18,14 +18,14 @@ passport.use(new BasicStrategy(
 ));
 
 // Allows CORS
-router.use(function(req, res, next) {
+router.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
 // Use this route for Api documentation
-router.get("/", function(req, res) {
+router.get("/", (req, res) => {
   console.log('<----get @ /---->');
   console.log('req---> ', req);
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
@@ -34,7 +34,7 @@ router.get("/", function(req, res) {
 ////// User Routes //////
 
 // Login route returns User data w/Preferences
-router.post('/login', function(req, res) {
+router.post('/login', (req, res) => {
   if ((!req.body.email) || (!req.body.password)) {
     res.status(403).send({error: 'Fields must not be empty.'})
   } else {
@@ -60,7 +60,7 @@ router.post('/login', function(req, res) {
 });
 
 // Signup route
-router.post('/signup', function(req, res) {
+router.post('/signup', (req, res) => {
   const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
 
   if (!name || !password) {
@@ -101,7 +101,7 @@ router.post('/signup', function(req, res) {
 });
 
 // Get all users w/Preferences
-router.get('/user', function(req, res) {
+router.get('/user', (req, res) => {
   models.User.findAll({
     include: [{
       model: models.Preference,
@@ -118,7 +118,7 @@ router.get('/user', function(req, res) {
 
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
-router.delete('/user/:name', function(req, res) {
+router.delete('/user/:name', (req, res) => {
   models.User.destroy({
     where: {username: req.params.username}
   })
@@ -133,7 +133,7 @@ router.delete('/user/:name', function(req, res) {
 ////// Cause Routes //////
 
 // Create a cause
-router.post('/causes/new', function(req, res) {
+router.post('/causes/new', (req, res) => {
   const { roundImage, whiteText } = req.body;
   const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
 
@@ -147,7 +147,7 @@ router.post('/causes/new', function(req, res) {
 });
 
 // Getting the entire cause list with Preferences, Donations and Comments
-router.get('/causes', function(req, res) {
+router.get('/causes', (req, res) => {
   models.Cause.findAll({
     include: [{
       model: models.Preference,
@@ -172,6 +172,30 @@ router.get('/causes', function(req, res) {
     res.status(500).json(err);
   })
 });
+
+// Get a cause by the id w/Preferences, Donations, and Comments
+router.get('/causes/:id', (req,res) => {
+  models.Cause.findOne({
+    where: { id: req.params.id },
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Donation,
+      as: 'Donations',
+      include: [{
+        model: models.Comment,
+        as: 'Comments'
+      }]
+    }]
+  })
+  .then(function(data) {
+    res.status(200).send(data);
+  })
+  .catch(function(error) {
+    res.status(500).send(error);
+  });
+})
 
 ////// Organizations Routes //////
 
