@@ -31,7 +31,7 @@ To use this code:
 - To create the database on your local machine type `createdb generosity-test`.
 - Next type `psql` to enter the Sequelize CLI.
 - Then `\c generosity-test` to connect to the database.
-- `\quit` to exit the Sequelize CLI.
+- `\q` to exit the Sequelize CLI.
 - `sequelize db:migrate` to migrate all of the models and tables.
 - In the `config.json` file change the username field to your local PC or Mac's username.
 - Then `node server.js` or `nodemon server.js` to start up the project. It will run on `localhost:3000`.
