@@ -18,14 +18,14 @@ passport.use(new BasicStrategy(
 ));
 
 // Allows CORS
-router.use((req, res, next) => {
+router.use((req,res,next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
 // Use this route for Api documentation
-router.get("/", (req, res) => {
+router.get("/", (req,res) => {
   console.log('<----get @ /---->');
   console.log('req---> ', req);
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
@@ -34,7 +34,7 @@ router.get("/", (req, res) => {
 ////// User Routes //////
 
 // Login route returns User data w/Preferences
-router.post('/login', (req, res) => {
+router.post('/login', (req,res) => {
   if ((!req.body.email) || (!req.body.password)) {
     res.status(403).send({error: 'Fields must not be empty.'})
   } else {
@@ -60,7 +60,7 @@ router.post('/login', (req, res) => {
 });
 
 // Signup route
-router.post('/signup', (req, res) => {
+router.post('/signup', (req,res) => {
   const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
 
   if (!name || !password) {
@@ -101,7 +101,7 @@ router.post('/signup', (req, res) => {
 });
 
 // Get all users w/Preferences
-router.get('/user', (req, res) => {
+router.get('/user', (req,res) => {
   models.User.findAll({
     include: [{
       model: models.Preference,
@@ -118,7 +118,7 @@ router.get('/user', (req, res) => {
 
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
-router.delete('/user/:name', (req, res) => {
+router.delete('/user/:name', (req,res) => {
   models.User.destroy({
     where: {username: req.params.username}
   })
@@ -133,7 +133,7 @@ router.delete('/user/:name', (req, res) => {
 ////// Cause Routes //////
 
 // Create a cause
-router.post('/causes/new', (req, res) => {
+router.post('/causes/new', (req,res) => {
   const { roundImage, whiteText } = req.body;
   const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
 
@@ -147,7 +147,7 @@ router.post('/causes/new', (req, res) => {
 });
 
 // Getting the entire cause list with Preferences, Donations and Comments
-router.get('/causes', (req, res) => {
+router.get('/causes', (req,res) => {
   models.Cause.findAll({
     include: [{
       model: models.Preference,
@@ -201,7 +201,7 @@ router.get('/causes/:id', (req,res) => {
 
 // Create an organization
 // NOTE Possibly do the verification on the front end, and only create the org if verified??
-router.post('/organizations/new', (req, res) => {
+router.post('/organizations/new', (req,res) => {
   const { roundImage, whiteText, taxID, director } = req.body;
   const newOrg = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined, director: undefined });
   const searchURL = `https://projects.propublica.org/nonprofits/api/v2/organizations/${taxID}.json`;
@@ -230,6 +230,9 @@ router.get('/organizations', (req,res) => {
     include: [{
       model: models.Preference,
       as: 'Preferences'
+    },{
+      model: models.Cause,
+      as: 'Causes'
     }]
   })
   .then(function(data) {
@@ -243,7 +246,14 @@ router.get('/organizations', (req,res) => {
 // Get organization by id
 router.get('/organizations/:id', (req,res) => {
   models.Organization.findOne({
-    where: { id: req.params.id }
+    where: { id: req.params.id },
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Cause,
+      as: 'Causes'
+    }]
   })
   .then(function(data) {
     res.status(200).send(data);
@@ -256,6 +266,12 @@ router.get('/organizations/:id', (req,res) => {
 ////// Preferences Routes //////
 
 ////// Donations Routes //////
+// NOTE This route will also add comments (if applicable)
+router.post('/causes/:causeID/donation/new', (req,res) => {
+  const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
+  // NOTE userID and amount will be used in both donation and comment functions
+  // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
+});
 
 ////// Comments Routes //////
 
