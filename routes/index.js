@@ -4,6 +4,7 @@ const passport      = require('passport');
 const bcrypt        = require("bcrypt");
 const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
+const fetch         = require('node-fetch');
 const router        = express.Router();
 
 // Passport Basic Authentication Strategy
@@ -29,6 +30,8 @@ router.get("/", function(req, res) {
   console.log('req---> ', req);
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
+
+////// User Routes //////
 
 // Login route returns User data w/Preferences
 router.post('/login', function(req, res) {
@@ -111,8 +114,7 @@ router.get('/user', function(req, res) {
   .catch(function(error) {
     res.status(500).json(error);
   })
-})
-
+});
 
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
@@ -126,10 +128,12 @@ router.delete('/user/:name', function(req, res) {
   .catch(function(error) {
     res.status(500).send(error);
   });
-})
+});
+
+////// Cause Routes //////
 
 // Create a cause
-router.post('/cause/new', function(req, res) {
+router.post('/causes/new', function(req, res) {
   const { roundImage, whiteText } = req.body;
   const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
 
@@ -140,11 +144,10 @@ router.post('/cause/new', function(req, res) {
           res.status('201').send({Cause: data, Preferences: preferences});
       })
   })
-})
-
+});
 
 // Getting the entire cause list with Preferences, Donations and Comments
-router.get('/cause', function(req, res) {
+router.get('/causes', function(req, res) {
   models.Cause.findAll({
     include: [{
       model: models.Preference,
@@ -166,9 +169,70 @@ router.get('/cause', function(req, res) {
     }
   })
   .catch(function(err) {
-    console.log(err);
     res.status(500).json(err);
   })
 });
+
+////// Organizations Routes //////
+
+// Create an organization
+// NOTE Possibly do the verification on the front end, and only create the org if verified??
+router.post('/organizations/new', (req, res) => {
+  const { roundImage, whiteText, taxID, director } = req.body;
+  const newOrg = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined, director: undefined });
+  const searchURL = `https://projects.propublica.org/nonprofits/api/v2/organizations/${taxID}.json`;
+
+  fetch(searchURL)
+  .then(response => response.json())
+  .then(data => {
+    if (data.organization.careofname.includes(director.toUpperCase())) {
+      models.Organization.create(newOrg)
+      .then(data => {
+          models.Preference.create({orgID: data.id, roundImage: roundImage, whiteText: whiteText})
+          .then(preferences => {
+              res.status('201').send({Organization: data, Preferences: preferences});
+          })
+      })
+    } else {
+      res.status(404).send({Error: "Organization cannot be verified."})
+    }
+  })
+  .catch(err => console.log({Error: err, Message: "Not Found"}));
+});
+
+// Get all organizations
+router.get('/organizations', (req,res) => {
+  models.Organization.findAll({
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    }]
+  })
+  .then(function(data) {
+    res.status(200).json(data);
+  })
+  .catch(function(error) {
+    res.status(500).json(error);
+  })
+});
+
+// Get organization by id
+router.get('/organizations/:id', (req,res) => {
+  models.Organization.findOne({
+    where: { id: req.params.id }
+  })
+  .then(function(data) {
+    res.status(200).send(data);
+  })
+  .catch(function(error) {
+    res.status(500).send(error);
+  });
+})
+
+////// Preferences Routes //////
+
+////// Donations Routes //////
+
+////// Comments Routes //////
 
 module.exports = router;

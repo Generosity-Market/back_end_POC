@@ -16,6 +16,10 @@ module.exports = {
           key: "id"
         }
       },
+      taxID: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
       name: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -30,7 +34,7 @@ module.exports = {
         allowNull: false
       },
       mission: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(1000),
         allowNull: false
       },
       email: {

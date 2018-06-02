@@ -2,6 +2,7 @@
 module.exports = (sequelize, DataTypes) => {
   var Organization = sequelize.define('Organization', {
     userID: DataTypes.INTEGER,
+    taxID: DataTypes.INTEGER,
     name: DataTypes.STRING,
     short_name: DataTypes.STRING,
     heading: DataTypes.STRING,
