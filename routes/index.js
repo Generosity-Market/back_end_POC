@@ -1,10 +1,10 @@
 const express       = require('express');
 const models        = require('../models/index');
-const passport      = require('passport');
 const bcrypt        = require("bcrypt");
+const passport      = require('passport');
+const fetch         = require('node-fetch');
 const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
-const fetch         = require('node-fetch');
 const router        = express.Router();
 
 // Passport Basic Authentication Strategy
@@ -116,6 +116,33 @@ router.get('/user', (req,res) => {
   })
 });
 
+// Get a user by id w/Preferences & Causes
+router.get('/user/:id', (req,res) => {
+  models.User.findOne({
+    where: { id: req.params.id },
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Cause,
+      as: 'Causes',
+      include: [{
+        model: models.Preference,
+        as: 'Preferences'
+      },{
+        model: models.Donation,
+        as: 'Donations'
+      }]
+    }]
+  })
+  .then(function(data) {
+    res.status(200).send(data);
+  })
+  .catch(function(error) {
+    res.status(500).send(error);
+  });
+})
+
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
 router.delete('/user/:name', (req,res) => {
@@ -200,7 +227,7 @@ router.get('/causes/:id', (req,res) => {
 ////// Organizations Routes //////
 
 // Create an organization
-// NOTE Possibly do the verification on the front end, and only create the org if verified??
+// NOTE Possibly do the verification on the front end, and only create the organization if verified??
 router.post('/organizations/new', (req,res) => {
   const { roundImage, whiteText, taxID, director } = req.body;
   const newOrg = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined, director: undefined });
@@ -232,7 +259,11 @@ router.get('/organizations', (req,res) => {
       as: 'Preferences'
     },{
       model: models.Cause,
-      as: 'Causes'
+      as: 'Causes',
+      include: [{
+        model: models.Preference,
+        as: 'Preferences'
+      }]
     }]
   })
   .then(function(data) {
@@ -252,7 +283,11 @@ router.get('/organizations/:id', (req,res) => {
       as: 'Preferences'
     },{
       model: models.Cause,
-      as: 'Causes'
+      as: 'Causes',
+      include: [{
+        model: models.Preference,
+        as: 'Preferences'
+      }]
     }]
   })
   .then(function(data) {
@@ -265,8 +300,25 @@ router.get('/organizations/:id', (req,res) => {
 
 ////// Preferences Routes //////
 
+// NOTE WIP Update Preferences Route
+router.post('/preferences/:id', (req,res) => {
+  // TODO write update functions here. Remember we have many different data types that have preferences options, including Users, Causes, and Organizations.
+  models.Preference.update({
+      roundImage: req.body.roundImage,
+      whiteText:  req.body.whiteText
+    },{
+      where: { id: req.params.id }
+    })
+  .then(data => {
+    res.send(200).json(data);
+  })
+  .catch(err => {
+    res.send(400).json(err);
+  })
+});
+
 ////// Donations Routes //////
-// NOTE This route will also add comments (if applicable)
+// NOTE WIP This route will also add comments (if applicable)
 router.post('/causes/:causeID/donation/new', (req,res) => {
   const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
   // NOTE userID and amount will be used in both donation and comment functions
