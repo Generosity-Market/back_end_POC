@@ -8,7 +8,7 @@ const BasicStrategy = require('passport-http').BasicStrategy;
 const Utils         = require('../utilities/utilities');
 const router        = express.Router();
 
-const { createNewObject, getExclusions } = Utils;
+const { createNewObject, hashPassword, getExclusions } = Utils;
 
 // Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
@@ -31,8 +31,6 @@ router.use((req,res,next) => {
 
 // Use this route for Api documentation
 router.get("/", (req,res) => {
-  console.log('<----get @ /---->');
-  console.log('req---> ', req);
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
 
@@ -40,32 +38,35 @@ router.get("/", (req,res) => {
 
 // Login route returns User data w/Preferences
 router.post('/login', (req,res) => {
+
   if ((!req.body.email) || (!req.body.password)) {
     res.status(403).send({error: 'Fields must not be empty.'})
   } else {
     models.User.findOne({
-      where: {
-        email: req.body.email
-      },
-      include: [{
-        model: models.Preference,
-        as: 'Preferences',
-      }]
-    }).then(function(user) {
-      if (bcrypt.compareSync(req.body.password, user.password)) {
-        var token = jwt.sign({ foo: 'bar' }, 'shhhhh');
-        res.status(200).send({user: user, auth_token: token});
-      } else {
-        res.status(403).send({error: "Username or password does not match."})
-      }
-    }).catch(function(err) {
-      res.status(404).send({error: err});
+        where: {
+          email: req.body.email
+        },
+        include: [{
+          model: models.Preference,
+          as: 'Preferences',
+        }]
+    }).then(user => {
+        if (bcrypt.compareSync(req.body.password, user.password)) {
+          var token = jwt.sign({ foo: 'bar' }, 'shhhhh');
+          res.status(200).send({user: user, auth_token: token});
+        } else {
+          res.status(403).send({error: "Username or password does not match."})
+        }
+    }).catch(err => {
+        res.status(404).send({error: err});
     })
-  }
+  };
+
 });
 
 // Signup route
 router.post('/signup', (req,res) => {
+
   const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
 
   if (!name || !password) {
@@ -91,38 +92,42 @@ router.post('/signup', (req,res) => {
 
   if (password === confirmPassword) {
       models.User.create(newUser)
-      .then(function(data) {
+      .then(data => {
           models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
-          .then(function(preferences) {
+          .then(preferences => {
               res.status('201').send({User: data, Preferences: preferences});
           })
       })
-      .catch(function(error) {
+      .catch(error => {
         res.status('400').send({error: error});
       });
   } else {
       res.status('403').send({error: "Passwords do not match.", body: req.body})
   }
+
 });
 
 // Get all users w/Preferences
 router.get('/user', (req,res) => {
+  // TODO research why the include statement doesnt actually include the preferences only in this route
   models.User.findAll({
     include: [{
       model: models.Preference,
       as: 'Preferences'
     }]
   })
-  .then(function(data) {
-    res.status(200).json(data);
+  .then(data => {
+    res.status('200').json(data);
   })
-  .catch(function(error) {
-    res.status(500).json(error);
+  .catch(error => {
+    res.status('500').json(error);
   })
+
 });
 
 // Get a user by id w/Preferences & Causes
 router.get('/user/:id', (req,res) => {
+
   models.User.findOne({
     where: { id: req.params.id },
     include: [{
@@ -140,12 +145,13 @@ router.get('/user/:id', (req,res) => {
       }]
     }]
   })
-  .then(function(data) {
-    res.status(200).send(data);
+  .then(user => {
+    res.status(200).send(user);
   })
-  .catch(function(error) {
+  .catch(error => {
     res.status(500).send(error);
   });
+
 })
 
 // Edit users details
@@ -159,32 +165,32 @@ router.put("/edit/user/:id", (req,res) => {
     let updatedPrefs = createNewObject(req.body, excludeUser);
 
     // Changing the password to the hashed password
-    updatedUser.password = Utils.hashPassword(req.body.password);
+    updatedUser.password = hashPassword(req.body.password);
 
     models.User.update(updatedUser, {
       where: {
         id: req.params.id
       }
     })
-    .then(function(user) {
+    .then(user => {
           models.Preference.update(updatedPrefs, {
             where: {
               userID: req.params.id
             }
           })
-          .then(function(prefs) {
-            // Adding the id and Preferences to the updated user data
+          .then(prefs => {
+            // Adding the id and Preferences to the user data returned to the front end
             updatedUser['Preferences'] = [updatedPrefs];
             updatedUser.id = Number(req.params.id);
             res.status('201').send({ User: updatedUser});
           })
-          .catch(function(err) {
+          .catch(err => {
             res.status('500').send({ success: false, error: err });
           })
     })
-    .catch(function(err) {
+    .catch(err => {
         res.status('500').send({ success: false, error: err });
-    })
+    });
 
 });
 
@@ -192,7 +198,9 @@ router.put("/edit/user/:id", (req,res) => {
 // NOTE In the future we must delete associated data first
 router.delete('/user/:name', (req,res) => {
   models.User.destroy({
-    where: {username: req.params.username}
+    where: {
+      username: req.params.username
+    }
   })
   .then(function(data) {
     res.status(200).send(req.params.username + " deleted.");
@@ -200,88 +208,6 @@ router.delete('/user/:name', (req,res) => {
   .catch(function(error) {
     res.status(500).send(error);
   });
-});
-
-//----- Cause Routes -----//
-
-// Create a cause
-router.post('/causes/new', (req,res) => {
-  const { roundImage, whiteText } = req.body;
-  const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
-
-  models.Cause.create(newCause)
-  .then(data => {
-      models.Preference.create({causeID: data.id, roundImage: roundImage, whiteText: whiteText})
-      .then(preferences => {
-          res.status('201').send({Cause: data, Preferences: preferences});
-      })
-  })
-});
-
-// Getting the entire cause list with Preferences, Donations and Comments
-router.get('/causes', (req,res) => {
-  models.Cause.findAll({
-    include: [{
-      model: models.Preference,
-      as: 'Preferences'
-    },{
-      model: models.Donation,
-      as: 'Donations',
-      include: [{
-        model: models.Comment,
-        as: 'Comments'
-      }]
-    }]
-  })
-  .then(function(data) {
-    if (data) {
-      res.status(200).json(data);
-    } else {
-      res.status(404).send("No causes found")
-    }
-  })
-  .catch(function(err) {
-    res.status(500).json(err);
-  })
-});
-
-// Get a cause by the id w/Preferences, Donations, and Comments
-router.get('/causes/:id', (req,res) => {
-  models.Cause.findOne({
-    where: { id: req.params.id },
-    include: [{
-      model: models.Preference,
-      as: 'Preferences'
-    },{
-      model: models.Donation,
-      as: 'Donations',
-      include: [{
-        model: models.Comment,
-        as: 'Comments'
-      }]
-    }]
-  })
-  .then(function(data) {
-    res.status(200).send(data);
-  })
-  .catch(function(error) {
-    res.status(500).send(error);
-  });
-})
-
-// TODO Edit cause details
-router.put('/edit/cause/:id', (req,res) => {
-
-    // TODO first update the cause
-    models.Cause.update()
-    .then(cause => {
-
-      // TODO then update preferences
-      res.status('200').send( {cause: cause} );
-    })
-    .catch(err => {
-      res.status('500').send( {success: false, error: err} );
-    });
 });
 
 //---- Organizations Routes ----//
@@ -296,14 +222,17 @@ router.post('/organizations/new', (req,res) => {
   fetch(searchURL)
   .then(response => response.json())
   .then(data => {
-    if (data.organization.careofname.includes(director.toUpperCase())) {
+
+    if (data.organization.careofname.includes( director.toUpperCase() ) ) {
+
       models.Organization.create(newOrg)
-      .then(data => {
-          models.Preference.create({orgID: data.id, roundImage: roundImage, whiteText: whiteText})
+      .then(org => {
+          models.Preference.create({orgID: org.id, roundImage: roundImage, whiteText: whiteText})
           .then(preferences => {
-              res.status('201').send({Organization: data, Preferences: preferences});
+              res.status('201').send({Organization: org, Preferences: preferences});
           })
       })
+
     } else {
       res.status(404).send({Error: "Organization cannot be verified."})
     }
@@ -326,10 +255,10 @@ router.get('/organizations', (req,res) => {
       }]
     }]
   })
-  .then(function(data) {
-    res.status(200).json(data);
+  .then(org => {
+    res.status(200).json(org);
   })
-  .catch(function(error) {
+  .catch(error => {
     res.status(500).json(error);
   })
 });
@@ -350,10 +279,10 @@ router.get('/organizations/:id', (req,res) => {
       }]
     }]
   })
-  .then(function(data) {
-    res.status(200).send(data);
+  .then(org => {
+    res.status(200).send(org);
   })
-  .catch(function(error) {
+  .catch(error => {
     res.status(500).send(error);
   });
 })
@@ -372,6 +301,116 @@ router.put('/edit/organization/:id', (req,res) => {
       res.status('500').send( { success: false, error: err } );
     })
 })
+
+
+//----- Cause Routes -----//
+
+// Create a cause
+router.post('/causes/new', (req,res) => {
+
+  const { roundImage, whiteText } = req.body;
+  const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
+
+  models.Cause.create(newCause)
+  .then(cause => {
+
+      models.Preference.create({causeID: cause.id, roundImage: roundImage, whiteText: whiteText})
+      .then(preferences => {
+          res.status('201').send({Cause: cause, Preferences: preferences});
+      })
+      .catch(err => {
+        res.status('500').json(err);
+      });
+
+  })
+  .catch(err => {
+    res.status('500').json(err);
+  });
+
+});
+
+// Getting the entire cause list with Preferences, Donations and Comments
+router.get('/causes', (req,res) => {
+
+  models.Cause.findAll({
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Donation,
+      as: 'Donations',
+      include: [{
+        model: models.Comment,
+        as: 'Comments'
+      }]
+    }]
+  })
+  .then(data => {
+    if (data) {
+      res.status(200).json(data);
+    } else {
+      res.status(404).send("No causes found")
+    }
+  })
+  .catch(err => {
+    res.status(500).json(err);
+  });
+
+});
+
+// Get a cause by the id w/Preferences, Donations, and Comments
+router.get('/causes/:id', (req,res) => {
+  models.Cause.findOne({
+    where: { id: req.params.id },
+    include: [{
+      model: models.Preference,
+      as: 'Preferences'
+    },{
+      model: models.Donation,
+      as: 'Donations',
+      include: [{
+        model: models.Comment,
+        as: 'Comments'
+      }]
+    }]
+  })
+  .then(data => {
+    res.status(200).send(data);
+  })
+  .catch(error => {
+    res.status(500).send(error);
+  });
+})
+
+// TODO Edit cause details
+router.put('/edit/cause/:id', (req,res) => {
+
+    // TODO first update the cause
+    models.Cause.update()
+    .then(cause => {
+
+      // TODO then update preferences
+      res.status('200').send( {cause: cause} );
+    })
+    .catch(err => {
+      res.status('500').send( {success: false, error: err} );
+    });
+});
+
+//---- Donations Routes ----//
+// NOTE WIP This route will also add comments (if applicable)
+router.post('/causes/:causeID/donation/new', (req,res) => {
+  const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
+  // NOTE userID and amount will be used in both donation and comment functions
+  // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
+});
+
+//---- Comments Routes ----//
+
+// TODO Create new comment route
+router.post('/causes/:causeID/donation/:donationID', (req,res) => {
+  // Logic for creating a comment on a donation
+});
 
 //---- Preferences Routes ----//
 
@@ -392,14 +431,5 @@ router.post('/preferences/:id', (req,res) => {
   })
 });
 
-//---- Donations Routes ----//
-// NOTE WIP This route will also add comments (if applicable)
-router.post('/causes/:causeID/donation/new', (req,res) => {
-  const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
-  // NOTE userID and amount will be used in both donation and comment functions
-  // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
-});
-
-//---- Comments Routes ----//
 
 module.exports = router;
