@@ -1,10 +1,10 @@
 const express           = require("express");
-const bodyParser        = require("body-parser");
 const path              = require("path");
-const routes            = require("./routes/index");
 const morgan            = require("morgan");
-const passport          = require('passport');
 const bcrypt            = require("bcrypt");
+const passport          = require('passport');
+const bodyParser        = require("body-parser");
+const routes            = require("./routes/index");
 const BasicStrategy     = require('passport-http').BasicStrategy;
 
 const app = express();
@@ -18,7 +18,7 @@ app.use(morgan("dev"));
 
 app.use(passport.initialize());
 
-const authenticateUser = function(username, password, done) {
+const authenticateUser = (username, password, done) => {
   model.User.findOne({
     where: {
       'username': username.toLowerCase()
@@ -40,11 +40,11 @@ const authenticateUser = function(username, password, done) {
 
 passport.use(new BasicStrategy(authenticateUser))
 
-passport.serializeUser(function(user, done) {
+passport.serializeUser((user, done) => {
   done(null, user.id)
 })
 
-passport.deserializeUser(function(id, done) {
+passport.deserializeUser((id, done) => {
   model.User.findOne({
     where: {
       'id': id
@@ -65,7 +65,7 @@ app.use(routes);
 // the "if" is used for testing.
 // getting the port from above..do this for production instead of localhost:3000
 if (require.main === module) {
-  app.listen(app.get('port'), function() {
+  app.listen(app.get('port'), () => {
     console.log("Node app is running on port", app.get('port'));
   });
 }
