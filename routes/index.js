@@ -5,7 +5,10 @@ const passport      = require('passport');
 const fetch         = require('node-fetch');
 const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
+const Utils         = require('../utilities/utilities');
 const router        = express.Router();
+
+const { createNewObject, getExclusions } = Utils;
 
 // Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
@@ -24,6 +27,8 @@ router.use((req,res,next) => {
   next();
 });
 
+//---- Documentation Route ----//
+
 // Use this route for Api documentation
 router.get("/", (req,res) => {
   console.log('<----get @ /---->');
@@ -31,7 +36,7 @@ router.get("/", (req,res) => {
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
 
-////// User Routes //////
+//---- User Routes ----//
 
 // Login route returns User data w/Preferences
 router.post('/login', (req,res) => {
@@ -67,8 +72,8 @@ router.post('/signup', (req,res) => {
     res.status(403).send({error: 'User name and password must not be blank.'})
   }
 
-  let salt = bcrypt.genSaltSync(10)
-  let passwordHash = bcrypt.hashSync(password, salt)
+  let salt = bcrypt.genSaltSync(10);
+  let passwordHash = bcrypt.hashSync(password, salt);
 
   let newUser = {
     name: name,
@@ -143,6 +148,46 @@ router.get('/user/:id', (req,res) => {
   });
 })
 
+// Edit users details
+router.put("/edit/user/:id", (req,res) => {
+    // Getting the excluded properties. This will be passed as an argument in createNewObject();
+    const excludePreferences = getExclusions('preferences');
+    const excludeUser = getExclusions('user');
+
+    // Updated objects minus the excluded properties.
+    let updatedUser = createNewObject(req.body, excludePreferences);
+    let updatedPrefs = createNewObject(req.body, excludeUser);
+
+    // Changing the password to the hashed password
+    updatedUser.password = Utils.hashPassword(req.body.password);
+
+    models.User.update(updatedUser, {
+      where: {
+        id: req.params.id
+      }
+    })
+    .then(function(user) {
+          models.Preference.update(updatedPrefs, {
+            where: {
+              userID: req.params.id
+            }
+          })
+          .then(function(prefs) {
+            // Adding the id and Preferences to the updated user data
+            updatedUser['Preferences'] = [updatedPrefs];
+            updatedUser.id = Number(req.params.id);
+            res.status('201').send({ User: updatedUser});
+          })
+          .catch(function(err) {
+            res.status('500').send({ success: false, error: err });
+          })
+    })
+    .catch(function(err) {
+        res.status('500').send({ success: false, error: err });
+    })
+
+});
+
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
 router.delete('/user/:name', (req,res) => {
@@ -157,7 +202,7 @@ router.delete('/user/:name', (req,res) => {
   });
 });
 
-////// Cause Routes //////
+//----- Cause Routes -----//
 
 // Create a cause
 router.post('/causes/new', (req,res) => {
@@ -224,7 +269,22 @@ router.get('/causes/:id', (req,res) => {
   });
 })
 
-////// Organizations Routes //////
+// TODO Edit cause details
+router.put('/edit/cause/:id', (req,res) => {
+
+    // TODO first update the cause
+    models.Cause.update()
+    .then(cause => {
+
+      // TODO then update preferences
+      res.status('200').send( {cause: cause} );
+    })
+    .catch(err => {
+      res.status('500').send( {success: false, error: err} );
+    });
+});
+
+//---- Organizations Routes ----//
 
 // Create an organization
 // NOTE Possibly do the verification on the front end, and only create the organization if verified??
@@ -298,7 +358,22 @@ router.get('/organizations/:id', (req,res) => {
   });
 })
 
-////// Preferences Routes //////
+//TODO Edit organization details
+router.put('/edit/organization/:id', (req,res) => {
+
+    // TODO first update the organization
+    models.Organization.update()
+    .then(org => {
+
+      //TODO then update Preferences
+      res.status('200').send( { organization: org } );
+    })
+    .catch(err => {
+      res.status('500').send( { success: false, error: err } );
+    })
+})
+
+//---- Preferences Routes ----//
 
 // NOTE WIP Update Preferences Route
 router.post('/preferences/:id', (req,res) => {
@@ -317,7 +392,7 @@ router.post('/preferences/:id', (req,res) => {
   })
 });
 
-////// Donations Routes //////
+//---- Donations Routes ----//
 // NOTE WIP This route will also add comments (if applicable)
 router.post('/causes/:causeID/donation/new', (req,res) => {
   const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
@@ -325,6 +400,6 @@ router.post('/causes/:causeID/donation/new', (req,res) => {
   // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
 });
 
-////// Comments Routes //////
+//---- Comments Routes ----//
 
 module.exports = router;
