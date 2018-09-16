@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express       = require('express');
 const models        = require('../models/index');
 const bcrypt        = require("bcrypt");
@@ -6,9 +7,39 @@ const fetch         = require('node-fetch');
 const jwt           = require('jsonwebtoken');
 const BasicStrategy = require('passport-http').BasicStrategy;
 const Utils         = require('../utilities/utilities');
+const AWS           = require('aws-sdk');
+const fs            = require('fs');
+const fileType      = require('file-type');
+const bluebird      = require('bluebird');
+const multiparty    = require('multiparty');
 const router        = express.Router();
 
-const { createNewObject, hashPassword, getExclusions } = Utils;
+// configure the keys for accessing AWS
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+// configure AWS to work with promises
+AWS.config.setPromisesDependency(bluebird);
+
+// create S3 instance
+const s3 = new AWS.S3({ region: 'us-east-1' });
+
+const { getBucketName, createNewObject, hashPassword, getExclusions } = Utils;
+
+// abstracts function to upload a file returning a promise
+const uploadFile = (buffer, name, type, bucketName) => {
+  const params = {
+    ACL: 'public-read',
+    Body: buffer,
+    Bucket: getBucketName(bucketName),
+    ContentType: type.mime,
+    Key: `${name}.${type.ext}`
+  };
+  console.log("params: ", params);
+  return s3.upload(params).promise();
+};
 
 // Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
@@ -27,14 +58,62 @@ router.use((req,res,next) => {
   next();
 });
 
-//---- Documentation Route ----//
+//-----------------------
+//  Documentation Route
+//-----------------------
 
 // Use this route for Api documentation
 router.get("/", (req,res) => {
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
 
-//---- User Routes ----//
+//-----------------------
+//      User Routes
+//-----------------------
+
+// Signup a user
+router.post('/signup', (req,res) => {
+
+  const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
+
+  if (!name || !password) {
+    res.status(403).send({error: 'User name and password must not be blank.'})
+  }
+
+  // let salt = bcrypt.genSaltSync(10);
+  // let passwordHash = bcrypt.hashSync(password, salt);
+
+  let newUser = {
+    name: name,
+    email: email,
+    salt: salt,
+    password: hashPassword(req.body.password),
+    street: street,
+    city: city,
+    state: state,
+    zipcode: zipcode,
+    phone: phone,
+    backgroundImage: backgroundImage,
+    mainImage: mainImage
+  }
+
+  if (password === confirmPassword) {
+      models.User.create(newUser)
+      .then(data => {
+          models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
+          .then(preferences => {
+              user['Preferences'] = preferences;
+              res.status('201').send(user);
+          })
+      })
+      .catch(error => {
+        res.status('400').send(error);
+      });
+  } else {
+      res.status('403').send({error: "Passwords do not match.", body: req.body})
+  }
+
+});
 
 // Login route returns User data w/Preferences
 router.post('/login', (req,res) => {
@@ -64,49 +143,6 @@ router.post('/login', (req,res) => {
 
 });
 
-// Signup route
-router.post('/signup', (req,res) => {
-
-  const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
-
-  if (!name || !password) {
-    res.status(403).send({error: 'User name and password must not be blank.'})
-  }
-
-  let salt = bcrypt.genSaltSync(10);
-  let passwordHash = bcrypt.hashSync(password, salt);
-
-  let newUser = {
-    name: name,
-    email: email,
-    salt: salt,
-    password: passwordHash,
-    street: street,
-    city: city,
-    state: state,
-    zipcode: zipcode,
-    phone: phone,
-    backgroundImage: backgroundImage,
-    mainImage: mainImage
-  }
-
-  if (password === confirmPassword) {
-      models.User.create(newUser)
-      .then(data => {
-          models.Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
-          .then(preferences => {
-              res.status('201').send({User: data, Preferences: preferences});
-          })
-      })
-      .catch(error => {
-        res.status('400').send({error: error});
-      });
-  } else {
-      res.status('403').send({error: "Passwords do not match.", body: req.body})
-  }
-
-});
-
 // Get all users w/Preferences
 router.get('/user', (req,res) => {
   // TODO research why the include statement doesnt actually include the preferences only in this route
@@ -116,8 +152,8 @@ router.get('/user', (req,res) => {
       as: 'Preferences'
     }]
   })
-  .then(data => {
-    res.status('200').json(data);
+  .then(user => {
+    res.status('200').json(user);
   })
   .catch(error => {
     res.status('500').json(error);
@@ -156,13 +192,10 @@ router.get('/user/:id', (req,res) => {
 
 // Edit users details
 router.put("/edit/user/:id", (req,res) => {
-    // Getting the excluded properties. This will be passed as an argument in createNewObject();
-    const excludePreferences = getExclusions('preferences');
-    const excludeUser = getExclusions('user');
 
     // Updated objects minus the excluded properties.
-    let updatedUser = createNewObject(req.body, excludePreferences);
-    let updatedPrefs = createNewObject(req.body, excludeUser);
+    let updatedUser = createNewObject(req.body, getExclusions('preferences'));
+    let updatedPrefs = createNewObject(req.body, getExclusions('user'));
 
     // Changing the password to the hashed password
     updatedUser.password = hashPassword(req.body.password);
@@ -182,14 +215,14 @@ router.put("/edit/user/:id", (req,res) => {
             // Adding the id and Preferences to the user data returned to the front end
             updatedUser['Preferences'] = [updatedPrefs];
             updatedUser.id = Number(req.params.id);
-            res.status('201').send({ User: updatedUser});
+            res.status('201').send(updatedUser);
           })
           .catch(err => {
-            res.status('500').send({ success: false, error: err });
+            res.status('500').send(err);
           })
     })
     .catch(err => {
-        res.status('500').send({ success: false, error: err });
+        res.status('500').send(err);
     });
 
 });
@@ -202,19 +235,21 @@ router.delete('/user/:name', (req,res) => {
       username: req.params.username
     }
   })
-  .then(function(data) {
+  .then(data => {
     res.status(200).send(req.params.username + " deleted.");
   })
-  .catch(function(error) {
+  .catch(error => {
     res.status(500).send(error);
   });
 });
 
-//---- Organizations Routes ----//
+//-----------------------
+// Organizations Routes
+//-----------------------
 
-// Create an organization
-// NOTE Possibly do the verification on the front end, and only create the organization if verified??
+// WIP Create an organization
 router.post('/organizations/new', (req,res) => {
+  // NOTE Possibly do the verification on the front end, and only create the organization if verified??
   const { roundImage, whiteText, taxID, director } = req.body;
   const newOrg = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined, director: undefined });
   const searchURL = `https://projects.propublica.org/nonprofits/api/v2/organizations/${taxID}.json`;
@@ -229,15 +264,16 @@ router.post('/organizations/new', (req,res) => {
       .then(org => {
           models.Preference.create({orgID: org.id, roundImage: roundImage, whiteText: whiteText})
           .then(preferences => {
-              res.status('201').send({Organization: org, Preferences: preferences});
+              org['Preferences'] = preferences;
+              res.status('201').send({Organization: org});
           })
       })
 
     } else {
-      res.status(404).send({Error: "Organization cannot be verified."})
+      res.status(403).send({error: "Organization cannot be verified."})
     }
   })
-  .catch(err => console.log({Error: err, Message: "Not Found"}));
+  .catch(err => res.status(404).send({error: err, Message: "Not Found"}));
 });
 
 // Get all organizations
@@ -295,36 +331,62 @@ router.put('/edit/organization/:id', (req,res) => {
     .then(org => {
 
       //TODO then update Preferences
-      res.status('200').send( { organization: org } );
+      res.status('200').send( { Organization: org } );
     })
     .catch(err => {
-      res.status('500').send( { success: false, error: err } );
+      res.status('500').send(err);
     })
 })
 
 
-//----- Cause Routes -----//
+//-----------------------
+//     Cause Routes
+//-----------------------
 
 // Create a cause
 router.post('/causes/new', (req,res) => {
-
+  const form = new multiparty.Form();
   const { roundImage, whiteText } = req.body;
+  // TODO Use the rest parameter (...rest) above to eliminate having to use the below statment???
   const newCause = Object.assign({}, req.body, { roundImage: undefined, whiteText: undefined });
 
-  models.Cause.create(newCause)
-  .then(cause => {
+  // models.Cause.create(newCause)
+  // .then(cause => {
+  //
+  //     models.Preference.create({causeID: cause.id, roundImage: roundImage, whiteText: whiteText})
+  //     .then(preferences => {
+  //         cause['Preferences'] = preferences;
+  //         res.status('201').send({Cause: cause});
+  //     })
+  //     .catch(err => {
+  //       res.status('500').json(err);
+  //     });
+  //
+  // })
+  // .catch(err => {
+  //   res.status('500').json(err);
+  // });
 
-      models.Preference.create({causeID: cause.id, roundImage: roundImage, whiteText: whiteText})
-      .then(preferences => {
-          res.status('201').send({Cause: cause, Preferences: preferences});
-      })
-      .catch(err => {
-        res.status('500').json(err);
-      });
+  form.parse(req, async (error, fields, files) => {
+    console.log("Fields: ", fields);
+    const state = JSON.parse(fields.state);
+    console.log("State: ", state);
+    if (error) throw new Error(error);
+    try {
+      const path = files.profileImage[0].path;
+      const bucketName =  fields.bucket[0];
+      const buffer = fs.readFileSync(path);
+      const type = fileType(buffer);
+      const timestamp = Date.now().toString();
+      const fileName = `${timestamp}-lg`;
+      // const data = await uploadFile(buffer, fileName, type, bucketName);
+      // console.log("Response: ", data);
+      // TODO Upon receiving data back from S3 (Hopefull a url??), save that url string to our database
 
-  })
-  .catch(err => {
-    res.status('500').json(err);
+      res.status(200).send({ files: files, bucket: fields.bucket, state: JSON.parse(fields.state) });
+    } catch (error) {
+      res.status(400).send(error);
+    }
   });
 
 });
@@ -336,7 +398,8 @@ router.get('/causes', (req,res) => {
     include: [{
       model: models.Preference,
       as: 'Preferences'
-    },{
+    },
+    {
       model: models.Donation,
       as: 'Donations',
       include: [{
@@ -345,17 +408,38 @@ router.get('/causes', (req,res) => {
       }]
     }]
   })
-  .then(data => {
-    if (data) {
-      res.status(200).json(data);
+  .then(cause => {
+    if (cause) {
+      res.status(200).json(cause);
     } else {
-      res.status(404).send("No causes found")
+      res.status(404).send({error: "No causes found"});
     }
   })
   .catch(err => {
     res.status(500).json(err);
   });
 
+  // NOTE do this in the .then of the method above for each cause.
+  // NOTE we can use the sum method to add all of the donations into a total. We can return this to the front end so it doesnt have to calculate it. It can just calculate once the result comes in...
+  // Example below from 'http://docs.sequelizejs.com/manual/tutorial/models-usage.html#-sum-sum-the-value-of-specific-attributes'
+
+  // Let's assume 3 person objects with an attribute age.
+  // The first one is 10 years old,
+  // The second one is 5 years old,
+  // The third one is 40 years old.
+  // Select by the column name you want to total
+  // Project.sum('age').then(sum => {
+    // this will return 55
+  // })
+
+  // Project.sum('age', { where: { age: { [Op.gt]: 5 } } }).then(sum => {
+    // will be 50
+  // })
+
+  // ORRRRRR use it as an attribute in the include statement....
+  // attributes: [
+  //    [sequelize.fn('SUM', sequelize.col('column')), 'sumOfColumn']
+  // ]
 });
 
 // Get a cause by the id w/Preferences, Donations, and Comments
@@ -365,7 +449,8 @@ router.get('/causes/:id', (req,res) => {
     include: [{
       model: models.Preference,
       as: 'Preferences'
-    },{
+    },
+    {
       model: models.Donation,
       as: 'Donations',
       include: [{
@@ -374,13 +459,34 @@ router.get('/causes/:id', (req,res) => {
       }]
     }]
   })
-  .then(data => {
-    res.status(200).send(data);
+  .then(cause => {
+    res.status(200).send(cause);
   })
   .catch(error => {
     res.status(500).send(error);
   });
-})
+
+  // NOTE we can use the sum method to add all of the donations into a total. We can return this to the front end so it doesnt have to calculate it. It can just calculate once the result comes in...
+  // Example below from 'http://docs.sequelizejs.com/manual/tutorial/models-usage.html#-sum-sum-the-value-of-specific-attributes'
+
+  // Let's assume 3 person objects with an attribute age.
+  // The first one is 10 years old,
+  // The second one is 5 years old,
+  // The third one is 40 years old.
+  // Select by the column name you want to total
+  // Project.sum('age').then(sum => {
+    // this will return 55
+  // })
+
+  // Project.sum('age', { where: { age: { [Op.gt]: 5 } } }).then(sum => {
+    // will be 50
+  // })
+
+  // ORRRRRR use it as an attribute in the include statement....
+  // attributes: [
+  //    [sequelize.fn('SUM', sequelize.col('column')), 'sumOfColumn']
+  // ]
+});
 
 // TODO Edit cause details
 router.put('/edit/cause/:id', (req,res) => {
@@ -390,14 +496,17 @@ router.put('/edit/cause/:id', (req,res) => {
     .then(cause => {
 
       // TODO then update preferences
-      res.status('200').send( {cause: cause} );
+      res.status('200').send(cause);
     })
     .catch(err => {
-      res.status('500').send( {success: false, error: err} );
+      res.status('500').send(err);
     });
 });
 
-//---- Donations Routes ----//
+//-----------------------
+//    Donations Routes
+//-----------------------
+
 // NOTE WIP This route will also add comments (if applicable)
 router.post('/causes/:causeID/donation/new', (req,res) => {
   const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
@@ -405,30 +514,41 @@ router.post('/causes/:causeID/donation/new', (req,res) => {
   // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
 });
 
-//---- Comments Routes ----//
+//-----------------------
+//    Comments Routes
+//-----------------------
 
-// TODO Create new comment route
+// TODO Create new comment
 router.post('/causes/:causeID/donation/:donationID', (req,res) => {
   // Logic for creating a comment on a donation
 });
 
-//---- Preferences Routes ----//
+// TODO Edit a comment
+router.put('/edit/comment/:id', (req,res) => {
+  // Logic for editing a comment that's already been sent.
+});
+
+//-----------------------
+//  Preferences Routes
+//-----------------------
 
 // NOTE WIP Update Preferences Route
-router.post('/preferences/:id', (req,res) => {
-  // TODO write update functions here. Remember we have many different data types that have preferences options, including Users, Causes, and Organizations.
-  models.Preference.update({
-      roundImage: req.body.roundImage,
-      whiteText:  req.body.whiteText
-    },{
-      where: { id: req.params.id }
+// TODO Will we need this route if it's built in the others??
+router.put('/edit/preferences/:id', (req,res) => {
+    // TODO write update functions here. Remember we have many different data types that have preferences options, including Users, Causes, and Organizations.
+    models.Preference.update({
+        roundImage: req.body.roundImage,
+        whiteText:  req.body.whiteText
+      },{
+        where: { id: req.params.id }
+      })
+    .then(preferences => {
+      res.send(200).json(preferences);
     })
-  .then(data => {
-    res.send(200).json(data);
-  })
-  .catch(err => {
-    res.send(400).json(err);
-  })
+    .catch(err => {
+      res.send(400).json(err);
+    });
+
 });
 
 
