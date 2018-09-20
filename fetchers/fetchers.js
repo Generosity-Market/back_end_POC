@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 
 const verificationURL = `https://projects.propublica.org/nonprofits/api/v2/organizations/${taxID}.json`;
 
@@ -10,7 +11,7 @@ const verifyNonProfitStatus = (URL, taxID) => {
 };
 
 const Fetchers = {
-  verifyNonProfitStatus: 
+  verifyNonProfitStatus:
   fetch(searchURL)
   .then(response => response.json())
   .then(data => {

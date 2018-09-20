@@ -3,33 +3,16 @@ const bcrypt = require("bcrypt");
 
 const Utils = {
 
-  // gets the Amazon S3 bucket name
-  getBucketName: (bucket) => {
-    switch (bucket) {
-      case 'cause':
-        return process.env.S3_CAUSES_BUCKET;
-      case 'user':
-        return process.env.S3_USERS_BUCKET;
-      case 'organization':
-        return process.env.S3_ORGANIZATIONS_BUCKET;
-      default:
-        return;
-    }
-  },
-
   // Creates a new object but removes the excluded properties
   createNewObject: (obj, exclusions) => {
       const keys = Object.keys(obj);
       let updatedObject = new Object();
 
       for (var i = 0; i < keys.length; i++) {
-
           if ( !exclusions.includes(keys[i]) ) {
               updatedObject[keys[i]] = obj[keys[i]];
           };
-
       };
-
       return updatedObject;
   },
 
@@ -62,7 +45,6 @@ const Utils = {
           return [];
       };
   },
-
 
 };
 
