@@ -84,7 +84,7 @@ router.post('/causes/new', causeController.createCause);
 router.get('/causes', causeController.getCauses);
 
 // Get a cause by the id w/Preferences, Donations, and Comments
-router.get('causes/:id', causeController.getCauseById);
+router.get('/causes/:id', causeController.getCauseById);
 
 // TODO Edit cause details
 router.put('/causes/:id', causeController.editCauseById);

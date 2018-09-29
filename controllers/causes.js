@@ -75,6 +75,8 @@ exports.createCause = (req,res) => {
 };
 
 // Getting the entire cause list with Preferences, Donations and Comments
+// TODO create a way to change the sort on a property that's passed in the request
+// TODO instead of creating multiple routes / controllers...
 exports.getCauses = (req,res) => {
 
   Cause.findAll({
@@ -91,9 +93,9 @@ exports.getCauses = (req,res) => {
       }]
     }]
   })
-  .then(cause => {
-    if (cause) {
-      res.status(200).json(cause);
+  .then(causes => {
+    if (causes) {
+      res.status(200).json(causes);
     } else {
       res.status(404).send({error: "No causes found"});
     }
