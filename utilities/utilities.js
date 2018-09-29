@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 
 const Utils = {
 
+  // Creates a new object but removes the excluded properties
   createNewObject: (obj, exclusions) => {
       const keys = Object.keys(obj);
       let updatedObject = new Object();
@@ -12,16 +13,17 @@ const Utils = {
               updatedObject[keys[i]] = obj[keys[i]];
           };
       };
-
       return updatedObject;
   },
 
+  // Creates a hashed password to be stored in the DB instead of plain text
   hashPassword: (password) => {
       let salt = bcrypt.genSaltSync(10);
       let passwordHash = bcrypt.hashSync(password, salt);
       return passwordHash;
   },
 
+  // Gets excluded properties based on the table name
   getExclusions: (excludes) => {
       switch (excludes) {
         case 'user':
@@ -43,7 +45,6 @@ const Utils = {
           return [];
       };
   },
-
 
 };
 
