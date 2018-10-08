@@ -29,10 +29,10 @@ getBucketName = (bucketName) => {
 
 exports.getUploadParameters = (file, folder) => {
   return {
-     path: file.path,
-     buffer: fs.createReadStream(file.path),
-     type: file.headers['content-type'],
-     name: `${folder}/${file.originalFilename}`,
+    path: file.path,
+    buffer: fs.createReadStream(file.path),
+    type: file.headers['content-type'],
+    name: `${folder}/${file.originalFilename}`,
   }
 }
 

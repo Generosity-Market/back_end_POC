@@ -1,11 +1,8 @@
 const fs = require('fs');
 const fileType = require('file-type');
-const models = require('../models/index');
+const { User, Preference, Cause, Donation, Comment } = require('../models/index');
 const multiparty = require('multiparty');
 const awsUtils = require('../utilities/awsUploads');
-
-// Destructure models
-const { User, Preference, Cause, Donation, Comment } = models;
 
 // Create a cause
 exports.createCause = (req,res) => {
@@ -37,7 +34,7 @@ exports.createCause = (req,res) => {
       const stateChanges = {
           userID: 1,
           amount: Number(state.goal),
-          taxId: undefined,
+          taxId: state.taxId || undefined,
           backgroundImage: cover_response.Location,
           mainImage: profile_response.Location,
           featured: false,
@@ -75,6 +72,8 @@ exports.createCause = (req,res) => {
 };
 
 // Getting the entire cause list with Preferences, Donations and Comments
+// TODO create a way to change the sort on a property that's passed in the request
+// TODO instead of creating multiple routes / controllers...
 exports.getCauses = (req,res) => {
 
   Cause.findAll({
@@ -91,9 +90,9 @@ exports.getCauses = (req,res) => {
       }]
     }]
   })
-  .then(cause => {
-    if (cause) {
-      res.status(200).json(cause);
+  .then(causes => {
+    if (causes) {
+      res.status(200).json(causes);
     } else {
       res.status(404).send({error: "No causes found"});
     }

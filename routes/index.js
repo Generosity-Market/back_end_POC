@@ -32,15 +32,18 @@ router.use((req,res,next) => {
   next();
 });
 
-
-// ***** Documentation Route *****
+/**
+ * Documentation Routes
+ */
 
 // Use this route for Api documentation
 router.get("/", (req,res) => {
   res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
 });
 
-// ***** User Routes *****
+/**
+ * User / Authentication Routes
+ */
 
 // Signup a user
 router.post('/signup', userController.registerUser);
@@ -61,7 +64,9 @@ router.put("/edit/user/:id", userController.editUser);
 // NOTE In the future we must delete associated data first
 router.delete('/user/:name', userController.deleteUser);
 
-// ***** Organizations Routes *****
+/**
+ * Organization Routes
+ */
 
 // WIP Create an organization
 router.post('/organizations/new', orgController.createOrg);
@@ -75,7 +80,9 @@ router.get('/organizations/:id', orgController.getOrgById);
 //TODO Edit organization details
 router.put('/edit/organization/:id', orgController.editOrg);
 
-// ***** Cause Routes *****
+/**
+ * Cause Routes
+ */
 
 // Create a cause
 router.post('/causes/new', causeController.createCause);
@@ -84,17 +91,21 @@ router.post('/causes/new', causeController.createCause);
 router.get('/causes', causeController.getCauses);
 
 // Get a cause by the id w/Preferences, Donations, and Comments
-router.get('causes/:id', causeController.getCauseById);
+router.get('/causes/:id', causeController.getCauseById);
 
 // TODO Edit cause details
 router.put('/causes/:id', causeController.editCauseById);
 
-// ***** Donations Routes *****
+/**
+ * Donation / Charge Routes
+ */
 
 // NOTE WIP This route will also add comments (if applicable)
-router.post('/causes/:causeID/donation/new', donationController.createDonation);
+router.post('/charge/new', donationController.createDonation);
 
-// ***** Comments Routes *****
+/**
+ * Comment Routes
+ */
 
 // TODO Create new comment
 router.post('/causes/:causeID/donation/:donationID', commentsController.createComment);
@@ -102,7 +113,9 @@ router.post('/causes/:causeID/donation/:donationID', commentsController.createCo
 // TODO Edit a comment
 router.put('/edit/comment/:id', commentsController.editComment);
 
-// ***** Preferences Routes *****
+/**
+ * Preferences Routes (For Users, Causes, and Organizations)
+ */
 
 // NOTE WIP Update Preferences Route
 router.put('/edit/preferences/:id', preferenceController.updatePreferences);
