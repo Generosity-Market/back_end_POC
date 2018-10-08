@@ -1,14 +1,49 @@
-const models = require('../models/index');
+const { Donation, Comment} = require('../models/index');
+const stripe = require('stripe')('sk_test_ASY8QP6OPakXsYJNmVFFD4Xu');
 
 //-----------------------
 //    Donations Routes
 //-----------------------
 
-const { Donation, Comment } = models;
-
-// NOTE WIP This route will also add comments (if applicable)
+// NOTES & TODOS
+// This route will also add comments (if applicable)
+// Should receive an array of cart items that were purchased
+// We need to create the stripe customer
+// ..then charge the card..
+// ..then create an empty response object..
+// ..then loop the the cart array and create a donation entry for each... Donation.create...
+// ..with each of those responses, push them to the response object..
+// ..send the response object back to the client side..
 exports.createDonation = (req,res) => {
-  const { userID, causeID, amount, public_comment, private_comment, imageURL } = req.body
+  const { cart, userID, causeID, amount, public_comment, private_comment, imageURL } = req.body;
+  console.log("Cart: ", req.body.cart);
+  console.log("Token: ", req.body.token); 
+
+    // TODO add the customer to the stripe database before creating the charge
+    stripe.customers.create({
+      email: req.body.email,
+      card: req.body.token.id
+    })
+    .then(customer =>
+      
+      stripe.charges.create({
+        amount: amount,
+        description: `GenerosityMarket.co - ${cart[0].cause}`,
+        currency: 'usd',
+        customer: customer.id
+      })
+    )
+    .then(charge => {
+      console.log("Charge response: ", charge);
+      // Do stuff our database here...
+      // Then move the res.send to the returned promise it creates..
+      res.send(charge)
+    })
+    .catch(err => {
+      console.log("Error:", err);
+      res.status(500).send({ error: "Purchase Failed" });
+    });
+
   // NOTE userID and amount will be used in both donation and comment functions
   // NOTE In the callback of the donation function, use the returned id as the donationID for the comment function.
 };

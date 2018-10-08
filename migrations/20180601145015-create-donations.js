@@ -8,6 +8,8 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
+      // TODO add a stripe transaction id...
+      // NOTE do we need the user to create a profile to be able to donate? If not then userID isn't needed...
       userID: {
         type: Sequelize.INTEGER,
         allowNull: false,

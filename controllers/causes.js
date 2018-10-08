@@ -1,11 +1,8 @@
 const fs = require('fs');
 const fileType = require('file-type');
-const models = require('../models/index');
+const { User, Preference, Cause, Donation, Comment } = require('../models/index');
 const multiparty = require('multiparty');
 const awsUtils = require('../utilities/awsUploads');
-
-// Destructure models
-const { User, Preference, Cause, Donation, Comment } = models;
 
 // Create a cause
 exports.createCause = (req,res) => {
@@ -37,7 +34,7 @@ exports.createCause = (req,res) => {
       const stateChanges = {
           userID: 1,
           amount: Number(state.goal),
-          taxId: undefined,
+          taxId: state.taxId || undefined,
           backgroundImage: cover_response.Location,
           mainImage: profile_response.Location,
           featured: false,
