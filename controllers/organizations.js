@@ -1,4 +1,4 @@
-const { Organization, Preference} = require('../models/index');
+const { Organization, Preference, Cause } = require('../models/index');
 const multiparty = require('multiparty');
 const awsUtils = require('../utilities/awsUploads');
 
@@ -8,6 +8,7 @@ const awsUtils = require('../utilities/awsUploads');
 
 // WIP Create an organization
 exports.createOrg = (req,res) => {
+  // TODO can any of this logic be extracted in any way?? maybe getUploadParameters?
   const form = new multiparty.Form();
 
   form.parse(req, async (error, fields, files) => {

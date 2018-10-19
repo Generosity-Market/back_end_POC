@@ -48,12 +48,15 @@ exports.createCause = (req,res) => {
 
       const newCause = Object.assign({}, state, stateChanges);
       console.log("New Cause: ", newCause);
+      const newPreferences = { roundImage, whiteText };
 
       Cause.create(newCause)
       .then(cause => {
-          Preference.create({causeID: cause.id, roundImage: roundImage, whiteText: whiteText})
+        Preference.create({ causeID: cause.id, ...newPreferences })
           .then(preferences => {
-              cause['Preferences'] = preferences;
+            cause['Preferences'] = [{ roundImage: roundImage, whiteText: whiteText }];
+              console.log("Preferences: ", preferences);
+              console.log("Created Cause: ", cause);
               res.status('201').send({Cause: cause});
           })
           .catch(err => {

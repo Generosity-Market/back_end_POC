@@ -52,8 +52,8 @@ exports.registerUser = (req,res) => {
 
   if (password === rest.confirmPassword) {
       User.create(newUser)
-      .then(data => {
-          Preference.create({userID: data.id, roundImage: roundImage, whiteText: whiteText})
+      .then(user => {
+          Preference.create({userID: user.id, roundImage: roundImage, whiteText: whiteText})
           .then(preferences => {
               user['Preferences'] = preferences;
               res.status('201').send(user);
