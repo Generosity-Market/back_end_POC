@@ -1,5 +1,6 @@
 const fs = require('fs');
 const fileType = require('file-type');
+const sequelize = require('sequelize');
 const { User, Preference, Cause, Donation, Comment } = require('../models/index');
 const multiparty = require('multiparty');
 const awsUtils = require('../utilities/awsUploads');
@@ -74,12 +75,15 @@ exports.createCause = (req,res) => {
 
 };
 
-// Getting the entire cause list with Preferences, Donations and Comments
+// Getting the entire cause list w/ Preferences, Donations, totalRaised and Comments
 // TODO create a way to change the sort on a property that's passed in the request
 // TODO instead of creating multiple routes / controllers...
 exports.getCauses = (req,res) => {
-
   Cause.findAll({
+    attributes: Object.keys(Cause.attributes).concat([
+      [sequelize.literal('(SELECT SUM("Donations"."amount") FROM "Donations" WHERE "Donations"."causeID" = "Cause"."id")'),
+        'totalRaised']
+    ]),
     include: [{
       model: Preference,
       as: 'Preferences'
@@ -91,7 +95,8 @@ exports.getCauses = (req,res) => {
         model: Comment,
         as: 'Comments'
       }]
-    }]
+    },
+  ],
   })
   .then(causes => {
     if (causes) {
@@ -101,36 +106,20 @@ exports.getCauses = (req,res) => {
     }
   })
   .catch(err => {
+    console.log("Error: ", err)
     res.status(500).json(err);
   });
 
-  // NOTE do this in the .then of the method above for each cause.
-  // NOTE we can use the sum method to add all of the donations into a total. We can return this to the front end so it doesnt have to calculate it. It can just calculate once the result comes in...
-  // Example below from 'http://docs.sequelizejs.com/manual/tutorial/models-usage.html#-sum-sum-the-value-of-specific-attributes'
-
-  // Let's assume 3 person objects with an attribute age.
-  // The first one is 10 years old,
-  // The second one is 5 years old,
-  // The third one is 40 years old.
-  // Select by the column name you want to total
-  // Project.sum('age').then(sum => {
-    // this will return 55
-  // })
-
-  // Project.sum('age', { where: { age: { [Op.gt]: 5 } } }).then(sum => {
-    // will be 50
-  // })
-
-  // ORRRRRR use it as an attribute in the include statement....
-  // attributes: [
-  //    [sequelize.fn('SUM', sequelize.col('column')), 'sumOfColumn']
-  // ]
 };
 
-// Get a cause by the id w/Preferences, Donations, and Comments
+// Get a cause by the id w/Preferences, Donations, and Comments, and totalRaised
 exports.getCauseById = (req,res) => {
   Cause.findOne({
     where: { id: req.params.id },
+    attributes: Object.keys(Cause.attributes).concat([
+      [sequelize.literal('(SELECT SUM("Donations"."amount") FROM "Donations" WHERE "Donations"."causeID" = "Cause"."id")'),
+        'totalRaised']
+    ]),
     include: [{
       model: Preference,
       as: 'Preferences'
@@ -142,7 +131,7 @@ exports.getCauseById = (req,res) => {
         model: Comment,
         as: 'Comments'
       }]
-    }]
+    }],
   })
   .then(cause => {
     res.status(200).send(cause);
@@ -150,27 +139,6 @@ exports.getCauseById = (req,res) => {
   .catch(error => {
     res.status(500).send(error);
   });
-
-  // NOTE we can use the sum method to add all of the donations into a total. We can return this to the front end so it doesnt have to calculate it. It can just calculate once the result comes in...
-  // Example below from 'http://docs.sequelizejs.com/manual/tutorial/models-usage.html#-sum-sum-the-value-of-specific-attributes'
-
-  // Let's assume 3 person objects with an attribute age.
-  // The first one is 10 years old,
-  // The second one is 5 years old,
-  // The third one is 40 years old.
-  // Select by the column name you want to total
-  // Project.sum('age').then(sum => {
-    // this will return 55
-  // })
-
-  // Project.sum('age', { where: { age: { [Op.gt]: 5 } } }).then(sum => {
-    // will be 50
-  // })
-
-  // ORRRRRR use it as an attribute in the include statement....
-  // attributes: [
-  //    [sequelize.fn('SUM', sequelize.col('column')), 'sumOfColumn']
-  // ]
 };
 
 // TODO Edit cause details

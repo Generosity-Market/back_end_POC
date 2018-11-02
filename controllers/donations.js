@@ -1,28 +1,14 @@
 const { Donation, Comment} = require('../models/index');
 const stripe = require('stripe')('sk_test_ASY8QP6OPakXsYJNmVFFD4Xu');
 
-//-----------------------
-//    Donations Routes
-//-----------------------
-
-// NOTES & TODOS
 // This route will also add comments (if applicable)
-// Should receive an array of cart items that were purchased
-
-// We need to create the stripe customer
-// ..then charge the card..
-// ..then create an empty response object..
-// ..then loop the the cart array and create a donation entry for each... Donation.create...
-// ..with each of those responses, push them to the response object..
-// ..send the response object back to the client side..
+// ...send the response object back to the client side for redux action...
 exports.createDonation = (req,res) => {
-  const { cart, userID, causeID, amount, public_comment, private_comment, imageURL } = req.body;
-  // console.log("Token: ", req.body.token); 
+  const { cart, userID, causeID, amount, public_comment, private_comment, imageURL, ...rest } = req.body;
 
-    // TODO add the customer to the stripe database before creating the charge
     stripe.customers.create({
-      email: req.body.email,
-      card: req.body.token.id
+      email: rest.email,
+      card: rest.token.id
     })
     .then(customer =>
       
@@ -34,10 +20,7 @@ exports.createDonation = (req,res) => {
       })
     )
     .then(charge => {
-      console.log("Charge response: ", charge);
-      // Do stuff our database here...
-      // Then move the res.send to the returned promise it creates..
-      // TODO loop through cart and create seperate donations here...
+      // console.log("Charge response: ", charge);
       if (charge.status === 'succeeded') {
         // Create object to add cart info for response?
         let response = [];
@@ -46,6 +29,8 @@ exports.createDonation = (req,res) => {
             amount: item.amount,
             userID: 1,
             causeID: item.causeID,
+            // stripeID: charge.id,
+            // stripeCustomerID: charge.customer,
           }
           Donation.create(itemArgs)
           .then(donation => {
@@ -55,8 +40,7 @@ exports.createDonation = (req,res) => {
             res.status('500').json(err);
           })
         })
-        // res.status('201').send(charge);
-        res.status('201').send(response);
+        res.status('201').send({ status: 'Success', response, charge });
       }
     })
     .catch(err => {

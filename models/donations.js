@@ -11,14 +11,17 @@ module.exports = (sequelize, DataTypes) => {
       as: "Causes",
       foreignKey: "id"
     })
+    
     Donation.belongsTo(models.User, {
       as: "Users",
       foreignKey: "id"
     })
+    
     Donation.hasMany(models.Comment, {
       as: "Comments",
       foreignKey: "donationID"
     })
+
   };
 
   return Donation;
