@@ -19,18 +19,22 @@ module.exports = (sequelize, DataTypes) => {
       as: "Users",
       foreignKey: "id"
     })
+    
     Cause.belongsTo(models.Organization, {
       as: "Organizations",
       foreignKey: "id"
     })
+    
     Cause.hasMany(models.Preference, {
       as: "Preferences",
       foreignKey: "causeID"
     })
+    
     Cause.hasMany(models.Donation, {
       as: "Donations",
       foreignKey: "causeID"
     })
+    
   };
 
   return Cause;
