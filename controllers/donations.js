@@ -2,7 +2,6 @@ const { Donation, Comment} = require('../models/index');
 const stripe = require('stripe')('sk_test_ASY8QP6OPakXsYJNmVFFD4Xu');
 
 // This route will also add comments (if applicable)
-// ...send the response object back to the client side for redux action...
 exports.createDonation = (req,res) => {
   const { cart, userID, causeID, amount, public_comment, private_comment, imageURL, ...rest } = req.body;
 
@@ -20,27 +19,21 @@ exports.createDonation = (req,res) => {
       })
     )
     .then(charge => {
-      // console.log("Charge response: ", charge);
       if (charge.status === 'succeeded') {
-        // Create object to add cart info for response?
-        let response = [];
-        cart.forEach(item => {
-          let itemArgs = {
+
+        let bulkDonations = cart.map(item => {
+          return {
             amount: item.amount,
             userID: 1,
             causeID: item.causeID,
             // stripeID: charge.id,
             // stripeCustomerID: charge.customer,
           }
-          Donation.create(itemArgs)
-          .then(donation => {
-            response.push(donation);
-          })
-          .catch(err => {
-            res.status('500').json(err);
-          })
-        })
-        res.status('201').send({ status: 'Success', response, charge });
+        });
+
+        Donation.bulkCreate(bulkDonations)
+        .then(data => res.status('201').json({ status: 'Success', response: data, charge }) )
+        .catch(err => res.status(500).send({status: 'Failed', err}))
       }
     })
     .catch(err => {
