@@ -33,12 +33,11 @@ exports.createDonation = (req,res) => {
 
         Donation.bulkCreate(bulkDonations)
         .then(data => res.status('201').json({ status: 'Success', response: data, charge }) )
-        .catch(err => res.status(500).send({status: 'Failed', err}))
+        .catch(err => res.status(500).send({status: 'failed', err}))
       }
     })
     .catch(err => {
-      console.log("Error:", err);
-      res.status(500).send({ error: "Purchase Failed" });
+      res.status(500).send({ status: "failed", error: err });
     });
 
   // NOTE userID and amount will be used in both donation and comment functions
