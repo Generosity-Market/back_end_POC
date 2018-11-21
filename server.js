@@ -7,24 +7,8 @@ const passport          = require('passport');
 const bodyParser        = require("body-parser");
 const routes            = require("./routes/index");
 const BasicStrategy     = require('passport-http').BasicStrategy;
-const { Client } = require('pg');
 
 const app = express();
-
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: true,
-});
-
-client.connect();
-
-client.query('SELECT table_schema,table_name FROM information_schema.tables;', (err, res) => {
-  if (err) throw err;
-  for (let row of res.rows) {
-    console.log(JSON.stringify(row));
-  }
-  client.end();
-});
 
 // below line is required for production app...setting the port
 app.set('port', (process.env.PORT || 3000));
