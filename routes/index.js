@@ -1,9 +1,9 @@
 require('dotenv').config();
 const express       = require('express');
-const models        = require('../models/index');
+// const models        = require('../models/index');
 const passport      = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
-const Utils         = require('../utilities/utilities');
+// const Utils         = require('../utilities/utilities');
 
 const router        = express.Router();
 
