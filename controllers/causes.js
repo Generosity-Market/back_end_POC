@@ -1,9 +1,14 @@
-// const fs = require('fs');
-// const fileType = require('file-type');
 const sequelize = require('sequelize');
-const { User, Preference, Cause, Donation, Comment } = require('../models/index');
 const multiparty = require('multiparty');
 const awsUtils = require('../utilities/awsUploads');
+
+const { 
+  Cause,
+  Comment,
+  Donation,
+  Preference,
+  // User,
+} = require('../models/index');
 
 // Create a cause
 exports.createCause = (req,res) => {
@@ -18,22 +23,19 @@ exports.createCause = (req,res) => {
       const cover_params = awsUtils.getUploadParameters(files.coverImage[0], 'coverImages');
 
       // NOTE the return in this function does the uploading of the file to AWS S3 bucketName
-      // TODO In the return of the async funtion put the returned url from S3 into our database.
       const profile_response = await awsUtils.uploadFile(profile_params, bucketName);
-        console.log("Profile: ", profile_response);
 
       const cover_response = await awsUtils.uploadFile(cover_params, bucketName);
-        console.log("Cover: ", cover_response);
-      //////////////////////////////////////
 
       const state = JSON.parse(fields.state);
-      console.log("State: ", state);
 
-      const { roundImage, whiteText } = state;
+      // TODO when a user sends the `organization_name`, lets do a search for it
+      // TODO Then get the `id` from the organization, and store it in the `cause->orgID` field
+      const { roundImage, whiteText, organization_name } = state;
 
       // TODO userId needs to come from the front end as part of the state...
       const stateChanges = {
-          userID: 1,
+          userID: state.userID || 1,
           amount: Number(state.goal),
           taxId: state.taxId || undefined,
           backgroundImage: cover_response.Location,
@@ -44,20 +46,16 @@ exports.createCause = (req,res) => {
           cover_image: undefined,
           profile_image: undefined,
       }
-      console.log("Changes: ", stateChanges);
-
 
       const newCause = Object.assign({}, state, stateChanges);
-      console.log("New Cause: ", newCause);
+      
       const newPreferences = { roundImage, whiteText };
 
       Cause.create(newCause)
       .then(cause => {
         Preference.create({ causeID: cause.id, ...newPreferences })
           .then(preferences => {
-            cause['Preferences'] = [{ roundImage: roundImage, whiteText: whiteText }];
-              console.log("Preferences: ", preferences);
-              console.log("Created Cause: ", cause);
+            cause['Preferences'] = [{ roundImage, whiteText }];
               res.status('201').send({Cause: cause});
           })
           .catch(err => {
@@ -78,6 +76,7 @@ exports.createCause = (req,res) => {
 // Getting the entire cause list w/ Preferences, Donations, totalRaised and Comments
 // TODO create a way to change the sort on a property that's passed in the request
 // TODO instead of creating multiple routes / controllers...
+// TODO add pagination and/or infinite scroll???
 exports.getCauses = (req,res) => {
   Cause.findAll({
     attributes: Object.keys(Cause.attributes).concat([
@@ -95,8 +94,7 @@ exports.getCauses = (req,res) => {
         model: Comment,
         as: 'Comments'
       }]
-    },
-  ],
+    }],
   })
   .then(causes => {
     if (causes) {
