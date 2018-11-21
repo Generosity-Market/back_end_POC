@@ -10,6 +10,12 @@ const BasicStrategy     = require('passport-http').BasicStrategy;
 
 const app = express();
 
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: true
+});
+
 // below line is required for production app...setting the port
 app.set('port', (process.env.PORT || 3000));
 

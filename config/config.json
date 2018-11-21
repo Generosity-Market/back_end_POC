@@ -2,21 +2,21 @@
   "development": {
     "username": "josephgordy",
     "password": null,
-    "database": "postgresql-elliptical-39024",
+    "database": "generosity-test",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "test": {
     "username": "josephgordy",
     "password": null,
-    "database": "postgresql-elliptical-39024",
+    "database": "generosity-test",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "production": {
     "username": "josephgordy",
     "password": null,
-    "database": "postgresql-elliptical-39024",
+    "database": "postgresql-clear-87892",
     "host": "127.0.0.1",
     "dialect": "postgres",
     "use_env_variable": "DATABASE_URL"
