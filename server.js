@@ -10,7 +10,7 @@ const BasicStrategy     = require('passport-http').BasicStrategy;
 
 const app = express();
 
-// below line is required for production app...setting the port
+// Required for production app...setting the port
 app.set('port', (process.env.PORT || 3000));
 
 app.use(bodyParser.json());
