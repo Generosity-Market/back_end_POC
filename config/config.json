@@ -17,7 +17,7 @@
     "username": "josephgordy",
     "password": null,
     "use_env_variable": "DATABASE_URL",
-    "database": "postgresql-tapered-23052",
+    "database": "postgresql-octagonal-96578",
     "host": "127.0.0.1",
     "dialect": "postgres"
   }
