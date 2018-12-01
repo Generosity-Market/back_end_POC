@@ -26,8 +26,9 @@ exports.createDonation = (req,res) => {
             amount: item.amount,
             userID: 1,
             causeID: item.causeID,
-            // stripeID: charge.id,
-            // stripeCustomerID: charge.customer,
+            email: rest.email,
+            stripeID: charge.id,
+            stripeCustomerID: charge.customer,
           }
         });
 
