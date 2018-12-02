@@ -3,7 +3,10 @@ module.exports = (sequelize, DataTypes) => {
   var Donation = sequelize.define('Donation', {
     userID: DataTypes.INTEGER,
     causeID: DataTypes.INTEGER,
-    amount: DataTypes.INTEGER
+    amount: DataTypes.INTEGER,
+    email: DataTypes.STRING,
+    stripeID: DataTypes.STRING,
+    stripeCustomerID: DataTypes.STRING
   }, {});
 
   Donation.associate = function(models) {

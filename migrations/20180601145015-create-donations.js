@@ -8,7 +8,6 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      // TODO add a stripe transaction id...for record keeping only. Don't need for client side
       // NOTE wont work in POC unless we drop tables and remigrate
       stripeID: {
         type: Sequelize.STRING,
