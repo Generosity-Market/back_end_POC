@@ -1,7 +1,13 @@
-const { Donation, Comment} = require('../models/index');
 const stripe = require('stripe')('sk_test_ASY8QP6OPakXsYJNmVFFD4Xu');
+const { 
+  Donation, 
+  Comment 
+} = require('../models/index');
 
 // This route will also add comments (if applicable)
+// TODO for ppl who are not signed in, lets create a user before making the charge. 
+// TODO Don't use a password for now
+// TODO We also need to update the user schema to not require a password...
 exports.createDonation = (req,res) => {
   const { cart, userID, causeID, amount, public_comment, private_comment, imageURL, ...rest } = req.body;
 
@@ -24,7 +30,7 @@ exports.createDonation = (req,res) => {
         let bulkDonations = cart.map(item => {
           return {
             amount: item.amount,
-            userID: 1,
+            userID: 1, // Needs to come from the front end
             causeID: item.causeID,
             email: rest.email,
             stripeID: charge.id,
