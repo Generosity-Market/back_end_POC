@@ -1,12 +1,22 @@
+const sequelize = require('sequelize');
 const bcrypt = require("bcrypt");
-const jwt    = require('jsonwebtoken');
-const models = require('../models/index');
-const Utils  = require('../utilities/utilities');
+const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
 
-const { createNewObject, hashPassword, getExclusions } = Utils;
-const { User, Preference, Cause, Donation, Comment } = models;
+const {
+  User,
+  Preference,
+  Cause,
+  Donation,
+  Comment,
+} = require('../models/index');
+
+const {
+  createNewObject,
+  hashPassword,
+  getExclusions,
+} = require('../utilities/utilities');
 
 //-----------------------
 //      User Routes
@@ -14,7 +24,7 @@ const { User, Preference, Cause, Donation, Comment } = models;
 
 // Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
-  function(username, password, done) {
+  function (username, password, done) {
     const userPassword = users[username];
     if (!userPassword) { return done(null, false); }
     if (userPassword !== password) { return done(null, false); }
@@ -24,80 +34,91 @@ passport.use(new BasicStrategy(
 
 
 // Signup a user
-exports.registerUser = (req,res) => {
+exports.registerUser = (req, res) => {
+  const { email, name = "", street = "", city = "", state = "", zipcode = "", password, confirmPassword = password, roundImage = true, whiteText = false, phone = "", ...rest } = req.body;
 
-  const { name, email, password, confirmPassword, street, city, state, zipcode, phone, backgroundImage, mainImage, roundImage, whiteText } = req.body;
-
-  if (!rest.name || !password) {
-    res.status(403).send({error: 'User name and password must not be blank.'})
+  if (!email || !password) {
+    res.status(403).send({ error: 'email and password must not be blank.' })
   }
 
-  // let salt = bcrypt.genSaltSync(10);
+  let salt = bcrypt.genSaltSync(10);
   // let passwordHash = bcrypt.hashSync(password, salt);
 
-
+  // TODO can this be done with the spread operator instead????
   let newUser = {
-    name: name,
-    email: email,
-    salt: salt,
-    password: hashPassword(req.body.password),
-    street: street,
-    city: city,
-    state: state,
-    zipcode: zipcode,
-    phone: phone,
-    backgroundImage: backgroundImage,
-    mainImage: mainImage
+    ...rest,
+    salt,
+    phone,
+    name,
+    street,
+    city,
+    state,
+    zipcode,
+    email,
+    password: hashPassword(password),
   }
+  console.log('User: ', newUser);
 
-  if (password === rest.confirmPassword) {
-      User.create(newUser)
+  if (password === confirmPassword) {
+    User.create(newUser)
       .then(user => {
-          Preference.create({userID: user.id, roundImage: roundImage, whiteText: whiteText})
+        Preference.create({ userID: user.id, roundImage, whiteText })
           .then(preferences => {
-              user['Preferences'] = preferences;
-              res.status('201').send(user);
+            user['Preferences'] = preferences;
+            res.status('201').send(user);
           })
       })
       .catch(error => {
         res.status('400').send(error);
       });
   } else {
-      res.status('403').send({error: "Passwords do not match.", body: req.body})
+    res.status('403').send({ error: "Passwords do not match.", body: req.body })
   }
 
 };
 
 // Login route returns User data w/Preferences
-exports.loginUser = (req,res) => {
+exports.loginUser = (req, res) => {
+  const { email, password } = req.body;
+  console.log("Req: ", req);
 
-  if ((!req.body.email) || (!req.body.password)) {
-    res.status(403).send({error: 'Fields must not be empty.'})
+  if ((!email) || (!password)) {
+    res.status(403).send({ error: 'Fields must not be empty.' })
   } else {
     User.findOne({
-        where: {
-          email: req.body.email
-        },
+      where: {
+        email: email
+      },
+      include: [{
+        model: Preference,
+        as: 'Preferences'
+      }, {
+        model: Cause,
+        as: 'Causes',
         include: [{
           model: Preference,
-          as: 'Preferences',
+          as: 'Preferences'
+        }, {
+          model: Donation,
+          as: 'Donations'
         }]
+      }]
     }).then(user => {
-        if (bcrypt.compareSync(req.body.password, user.password)) {
-          var token = jwt.sign({ foo: 'bar' }, 'shhhhh');
-          res.status(200).send({user: user, auth_token: token});
-        } else {
-          res.status(403).send({error: "Username or password does not match."})
-        }
+      if (bcrypt.compareSync(password, user.password)) {
+        var token = jwt.sign({ foo: 'bar' }, 'shhhhh');
+        res.status(200).send({ user: user, auth_token: token });
+      } else {
+        res.status(403).send({ error: "Username or password does not match." })
+      }
     }).catch(err => {
-        res.status(404).send({error: err});
+      res.status(404).send({ error: err });
     })
   };
 
 };
 
 // Get all users w/Preferences
-exports.getAllUsers = (req,res) => {
+exports.getAllUsers = (req, res) => {
   // TODO research why the include statement doesnt actually include the preferences only in this route
   User.findAll({
     include: [{
@@ -105,93 +126,144 @@ exports.getAllUsers = (req,res) => {
       as: 'Preferences'
     }]
   })
-  .then(user => {
-    res.status('200').json(user);
-  })
-  .catch(error => {
-    res.status('500').json(error);
-  })
+    .then(user => {
+      res.status('200').json(user);
+    })
+    .catch(error => {
+      res.status('500').json(error);
+    })
 
 };
 
 // Get a user by id w/Preferences & Causes
-exports.getUserById = (req,res) => {
+exports.getUserById = (req, res) => {
 
   User.findOne({
     where: { id: req.params.id },
     include: [{
       model: Preference,
       as: 'Preferences'
-    },{
-      model: Cause,
-      as: 'Causes',
-      include: [{
-        model: Preference,
-        as: 'Preferences'
-      },{
-        model: Donation,
-        as: 'Donations'
-      }]
     }]
   })
-  .then(user => {
-    res.status(200).send(user);
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  });
-
-};
-
-// Edit users details
-exports.editUser = (req,res) => {
-
-    // Updated objects minus the excluded properties.
-    let updatedUser = createNewObject(req.body, getExclusions('preferences'));
-    let updatedPrefs = createNewObject(req.body, getExclusions('user'));
-
-    // Changing the password to the hashed password
-    updatedUser.password = hashPassword(req.body.password);
-
-    User.update(updatedUser, {
-      where: {
-        id: req.params.id
-      }
-    })
     .then(user => {
-          Preference.update(updatedPrefs, {
-            where: {
-              userID: req.params.id
-            }
-          })
-          .then(prefs => {
-            // Adding the id and Preferences to the user data returned to the front end
-            updatedUser['Preferences'] = [updatedPrefs];
-            updatedUser.id = Number(req.params.id);
-            res.status('201').send(updatedUser);
-          })
-          .catch(err => {
-            res.status('500').send(err);
-          })
+      res.status(200).send(user);
     })
-    .catch(err => {
-        res.status('500').send(err);
+    .catch(error => {
+      res.status(500).send(error);
     });
 
 };
 
+// Edit users details
+exports.editUser = (req, res) => {
+
+  // Updated objects minus the excluded properties.
+  let updatedUser = createNewObject(req.body, getExclusions('preferences'));
+  let updatedPrefs = createNewObject(req.body, getExclusions('user'));
+
+  // Changing the password to the hashed password
+  updatedUser.password = hashPassword(req.body.password);
+
+  User.update(updatedUser, {
+    where: {
+      id: req.params.id
+    }
+  })
+    .then(user => {
+      Preference.update(updatedPrefs, {
+        where: {
+          userID: req.params.id
+        }
+      })
+        .then(prefs => {
+          // Adding the id and Preferences to the user data returned to the front end
+          updatedUser['Preferences'] = [updatedPrefs];
+          updatedUser.id = Number(req.params.id);
+          res.status('201').send(updatedUser);
+        })
+        .catch(err => {
+          res.status('500').send(err);
+        })
+    })
+    .catch(err => {
+      res.status('500').send(err);
+    });
+
+};
+
+exports.getUserCauses = (req, res) => {
+  // Get causes by the users id
+  Cause.findAll({
+    where: {
+      userID: req.params.id
+    },
+    attributes: Object.keys(Cause.attributes).concat([
+      [sequelize.literal('(SELECT SUM("Donations"."amount") FROM "Donations" WHERE "Donations"."causeID" = "Cause"."id")'),
+        'totalRaised']
+    ]),
+    include: [{
+      model: Preference,
+      as: 'Preferences'
+    }, {
+      model: Donation,
+      as: 'Donations',
+      include: [{
+        model: Comment,
+        as: 'Comments'
+      }]
+    }],
+  })
+    .then(causes => {
+      if (causes) {
+        res.status(200).json(causes);
+      } else {
+        res.status(404).send({ error: "No causes found" });
+      }
+    })
+    .catch(err => {
+      console.log("Error: ", err)
+      res.status(500).json(err);
+    });
+}
+
+exports.getUserDonations = (req, res) => {
+  // Get Donations made by the user by userID
+  Donation.findAll({
+    where: {
+      userID: req.params.id
+    },
+    attributes: ['amount', 'updatedAt'],
+    include: [{
+      model: Cause,
+      attributes: ['name', 'icon'],
+      as: 'Causes',
+    }]
+  })
+    .then(causes => {
+      if (causes) {
+        res.status(200).json(causes);
+      } else {
+        res.status(404).send({ error: "No Donations found" });
+      }
+    })
+    .catch(err => {
+      console.log("Error: ", err)
+      res.status(500).json(err);
+    });
+}
+
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
-exports.deleteUser = (req,res) => {
+exports.deleteUser = (req, res) => {
   User.destroy({
     where: {
       username: req.params.username
     }
   })
-  .then(data => {
-    res.status(200).send(req.params.username + " deleted.");
-  })
-  .catch(error => {
-    res.status(500).send(error);
-  });
+    .then(data => {
+      res.status(200).send(req.params.username + " deleted.");
+    })
+    .catch(error => {
+      res.status(500).send(error);
+    });
 };
