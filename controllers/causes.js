@@ -35,7 +35,7 @@ exports.createCause = (req,res) => {
 
       // TODO userId needs to come from the front end as part of the state...
       const stateChanges = {
-          userID: state.userID || 1,
+          userID: state.userID,
           amount: Number(state.goal),
           taxId: state.taxId || undefined,
           backgroundImage: cover_response.Location,
