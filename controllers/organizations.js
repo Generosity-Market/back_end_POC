@@ -44,7 +44,6 @@ exports.createOrg = (req,res) => {
       }
       console.log("Changes: ", stateChanges);
 
-
       const newOrg = Object.assign({}, state, stateChanges);
       console.log("New Organization: ", newOrg);
 
@@ -129,9 +128,10 @@ exports.getOrgById = (req,res) => {
 //TODO Edit organization details
 exports.editOrg = (req,res) => {
     // TODO first update the organization
-    Organization.update()
+    Organization.update({
+      // TODO Add params...
+    })
     .then(org => {
-
       //TODO then update Preferences
       res.status('200').send( { Organization: org } );
     })

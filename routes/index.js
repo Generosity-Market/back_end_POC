@@ -1,11 +1,11 @@
 require('dotenv').config();
-const express       = require('express');
-const models        = require('../models/index');
-const passport      = require('passport');
+const express = require('express');
+// const models        = require('../models/index');
+const passport = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
-const Utils         = require('../utilities/utilities');
+// const Utils         = require('../utilities/utilities');
 
-const router        = express.Router();
+const router = express.Router();
 
 // NOTE Importing Controllers
 const causeController = require('../controllers/causes');
@@ -17,7 +17,7 @@ const userController = require('../controllers/users');
 
 // Passport Basic Authentication Strategy
 passport.use(new BasicStrategy(
-  function(username, password, done) {
+  function (username, password, done) {
     const userPassword = users[username];
     if (!userPassword) { return done(null, false); }
     if (userPassword !== password) { return done(null, false); }
@@ -26,7 +26,7 @@ passport.use(new BasicStrategy(
 ));
 
 // Allows CORS
-router.use((req,res,next) => {
+router.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
@@ -37,8 +37,8 @@ router.use((req,res,next) => {
  */
 
 // Use this route for Api documentation
-router.get("/", (req,res) => {
-  res.status(200).send({status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body});
+router.get("/", (req, res) => {
+  res.status(200).send({ status: "200", message: 'Everything is fine, we\'re fine', requestBody: req.body });
 });
 
 /**
@@ -56,6 +56,12 @@ router.get('/user', userController.getAllUsers);
 
 // Get a user by id w/Preferences & Causes
 router.get('/user/:id', userController.getUserById);
+
+// Get all causes created by the user
+router.get('/user/:id/causes', userController.getUserCauses);
+
+// Get all donations made by the user
+router.get('/user/:id/donations', userController.getUserDonations);
 
 // Edit users details
 router.put("/edit/user/:id", userController.editUser);

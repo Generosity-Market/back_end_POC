@@ -35,7 +35,7 @@ exports.createCause = (req,res) => {
 
       // TODO userId needs to come from the front end as part of the state...
       const stateChanges = {
-          userID: state.userID || 1,
+          userID: state.userID,
           amount: Number(state.goal),
           taxId: state.taxId || undefined,
           backgroundImage: cover_response.Location,
@@ -140,7 +140,7 @@ exports.getCauseById = (req,res) => {
 };
 
 // TODO Edit cause details
-// NOTE will need to find out how to remove an image form Amazon S3 as well
+// NOTE will need to find out how to remove an image from Amazon S3 as well
 exports.editCauseById = (req,res) => {
     // TODO first update the cause
     Cause.update()
