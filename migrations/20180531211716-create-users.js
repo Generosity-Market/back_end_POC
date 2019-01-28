@@ -17,6 +17,8 @@ module.exports = {
         allowNull: false,
         unique: true
       },
+      // TODO allow null for password in the future...
+      // TODO that way we can create a user upon succesful donation as well
       password: {
         type: Sequelize.STRING,
         allowNull: false
@@ -41,9 +43,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
+      // TODO Allow null for phone in the future...will need DB changes and migrated again
       phone: {
         type: Sequelize.STRING,
-        allowNull: false
+        // allowNull: false
       },
       backgroundImage: {
         type: Sequelize.STRING
@@ -52,12 +55,12 @@ module.exports = {
         type: Sequelize.STRING
       },
       createdAt: {
-        allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        allowNull: false
       },
       updatedAt: {
-        allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        allowNull: false
       }
     });
   },

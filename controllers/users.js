@@ -92,16 +92,6 @@ exports.loginUser = (req, res) => {
       include: [{
         model: Preference,
         as: 'Preferences'
-      }, {
-        model: Cause,
-        as: 'Causes',
-        include: [{
-          model: Preference,
-          as: 'Preferences'
-        }, {
-          model: Donation,
-          as: 'Donations'
-        }]
       }]
     }).then(user => {
       if (bcrypt.compareSync(password, user.password)) {
@@ -139,7 +129,9 @@ exports.getAllUsers = (req, res) => {
 exports.getUserById = (req, res) => {
 
   User.findOne({
-    where: { id: req.params.id },
+    where: {
+      id: req.params.id
+    },
     include: [{
       model: Preference,
       as: 'Preferences'
@@ -226,22 +218,22 @@ exports.getUserCauses = (req, res) => {
     });
 }
 
-exports.getUserDonations = (req, res) => {
-  // Get Donations made by the user by userID
-  Donation.findAll({
-    where: {
-      userID: req.params.id
-    },
-    attributes: ['amount', 'updatedAt'],
+exports.getSupportedCauses = (req, res) => {
+  // Get Causes that have Donations made by the user (Search by userID)
+  Cause.findAll({
+    attributes: ['name', 'mainImage', 'id'],
     include: [{
-      model: Cause,
-      attributes: ['name', 'icon'],
-      as: 'Causes',
+      where: {
+        userID: req.params.id,
+      },
+      model: Donation,
+      as: 'Donations',
+      attributes: ['amount', 'updatedAt', 'userID'],
     }]
   })
-    .then(causes => {
-      if (causes) {
-        res.status(200).json(causes);
+    .then(donations => {
+      if (donations) {
+        res.status(200).json(donations);
       } else {
         res.status(404).send({ error: "No Donations found" });
       }

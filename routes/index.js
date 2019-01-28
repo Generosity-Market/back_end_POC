@@ -61,7 +61,7 @@ router.get('/user/:id', userController.getUserById);
 router.get('/user/:id/causes', userController.getUserCauses);
 
 // Get all donations made by the user
-router.get('/user/:id/donations', userController.getUserDonations);
+router.get('/user/:id/donations', userController.getSupportedCauses);
 
 // Edit users details
 router.put("/edit/user/:id", userController.editUser);
