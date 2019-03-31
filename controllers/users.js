@@ -149,33 +149,40 @@ exports.getUserById = (req, res) => {
 // Edit users details
 exports.editUser = (req, res) => {
 
-  // Updated objects minus the excluded properties.
-  let updatedUser = createNewObject(req.body, getExclusions('preferences'));
-  let updatedPrefs = createNewObject(req.body, getExclusions('user'));
+  let updatedUser = {
+    ...req.body.address,
+    phone: req.body.phone,
+    name: req.body.name,
+  };
 
-  // Changing the password to the hashed password
-  updatedUser.password = hashPassword(req.body.password);
+  // // Changing the password to the hashed password
+  // updatedUser.password = hashPassword(req.body.password);
 
   User.update(updatedUser, {
     where: {
       id: req.params.id
-    }
+    },
+    returning: true,
   })
     .then(user => {
-      Preference.update(updatedPrefs, {
-        where: {
-          userID: req.params.id
-        }
-      })
-        .then(prefs => {
-          // Adding the id and Preferences to the user data returned to the front end
-          updatedUser['Preferences'] = [updatedPrefs];
-          updatedUser.id = Number(req.params.id);
-          res.status('201').send(updatedUser);
-        })
-        .catch(err => {
-          res.status('500').send(err);
-        })
+      console.log("User: ", user[1]);
+      res.status('201').send(user[1][0].dataValues); // Is good until we start updating preferences for the user
+
+      //   Preference.update(updatedPrefs, {
+      //     where: {
+      //       userID: req.params.id
+      //     }
+      //   })
+      //     .then(prefs => {
+      //       // Adding the id and Preferences to the user data returned to the front end
+      //       updatedUser['Preferences'] = [updatedPrefs];
+      //       updatedUser.id = Number(req.params.id);
+      //       res.status('201').send(updatedUser);
+      //     })
+      //     .catch(err => {
+      //       res.status('500').send(err);
+      //     })
+      // })
     })
     .catch(err => {
       res.status('500').send(err);
@@ -221,7 +228,7 @@ exports.getUserCauses = (req, res) => {
 exports.getSupportedCauses = (req, res) => {
   // Get Causes that have Donations made by the user (Search by userID)
   Cause.findAll({
-    attributes: ['name', 'mainImage', 'id'],
+    // attributes: ['name', 'mainImage', 'id'],
     include: [{
       where: {
         userID: req.params.id,

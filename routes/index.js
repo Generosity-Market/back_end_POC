@@ -64,7 +64,7 @@ router.get('/user/:id/causes', userController.getUserCauses);
 router.get('/user/:id/donations', userController.getSupportedCauses);
 
 // Edit users details
-router.put("/edit/user/:id", userController.editUser);
+router.post("/edit/user/:id", userController.editUser);
 
 // Delete a user from the db
 // NOTE In the future we must delete associated data first
