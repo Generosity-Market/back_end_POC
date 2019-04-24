@@ -2,7 +2,7 @@ const htmlHeader = require('./pieces/header.js');
 const htmlFooter = require('./pieces/footer.js');
 const htmlStyles = require('./pieces/styles.js');
 
-const htmlBody = (contentStyles, bodyContent) => (
+const htmlBody = (contentStyles, bodyContent, mailData) => (
     `<html>
         <head>
             <style>
@@ -12,8 +12,8 @@ const htmlBody = (contentStyles, bodyContent) => (
         </head>
         <body>
             <div class="wrapper">
-                ${htmlHeader}
-                ${bodyContent}
+                ${htmlHeader(mailData)}
+                ${bodyContent(mailData)}
                 ${htmlFooter}
             </div>
         </body>

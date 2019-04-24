@@ -1,11 +1,25 @@
 const htmlStyles =
-    `body {
-        background-color: #efefef;
+    `* {
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        background-color: #E4E5EA;
     }
     
     header {
-        background-color: #acd147;
-        height: 100px;
+        background-color: #4bb74d;
+        padding: 1rem;
+    }
+
+    header img {
+        width: 40%;
+    }
+
+    header p {
+        display: inline-block;
+        margin-left: auto;
     }
 
     footer {
@@ -16,14 +30,12 @@ const htmlStyles =
     .wrapper {
         background-color: #FFF;
         border: 1px solid #ddd;
-        border-radius: 7px;
-        box-shadow: 3px 3px 5px rgba(0,0,0,0.2);
         color: #707070;
-        margin: 5rem auto;
+        margin: 3rem auto;
         overflow: hidden;
-        padding: 0;
         text-align:center;
         width: 85%;
+        max-width: 600px;
     }`;
 
 module.exports = htmlStyles;

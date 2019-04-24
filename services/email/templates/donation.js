@@ -2,23 +2,35 @@ const htmlBody = require('./body');
 
 const subject = 'Thank you for your support';
 
-const styles =
-    `.donation_message span { 
+const styles = `
+    .donation_message span,
+    .cause_item span { 
         color: #008C49; 
     }
-
     .cause_wrapper {
         display: flex;
+        justify-content: space-around;
         flex-wrap: wrap;
-    }
-
-    .cause_item {
-        width: 200px;
-    }
-
-    .cause_item img {
+        margin: 50px 0;
         width: 100%;
-        height: auto;
+    }
+    .cause_item {
+        border-radius: 5px;
+        box-shadow: 3px 3px 5px rgba(0,0,0,0.2);
+        height: 130px;
+        margin: 8px;
+        padding-bottom: 10px;
+        width: 180px;
+    }
+    .cause_item .title {
+        margin-bottom: 5px;
+    }
+    .cause_item .image {
+        background-position: center;
+        background-size: cover;
+        overflow: hidden;
+        width: 180px;
+        height: 115px;
     }`;
 
 
@@ -38,21 +50,23 @@ const renderCauses = (cart) => {
         }
     });
 
+    let html = ``;
     // Render each cause tile
-    return causeList.map(listItem => (
-        `<div class="cause_item">
-            <img src=${listItem.mainImage} />
-            <p>
-                ${listItem.cause} • <span>$${listItem.amount}</span>
+    causeList.map(listItem => {
+        html = html + `
+        <div class="cause_item">
+            <div class="image" style="background-image: url(${listItem.mainImage});"></div>
+            <p class="title">
+                ${listItem.cause} - <span>$${listItem.amount}</span>
             </p>
         </div>`
-    ));
+    });
+
+    return html;
 }
 
-// TODO Do things with the mailData
 const htmlContent = (mailData) => (
     `<div>
-        <h3>Welcome ${mailData.email}</h3>
         <p>Thank you for supporting these great causes</p>
 
         <div class="cause_wrapper">
@@ -78,6 +92,6 @@ exports.template = (mailData) => {
 
     return {
         subject,
-        html: htmlBody(styles, htmlContent(mailData)),
+        html: htmlBody(styles, htmlContent, mailData),
     }
 };
