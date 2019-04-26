@@ -48,9 +48,9 @@ exports.createDonation = (req, res) => {
           receipt_url: charge.receipt_url,
         });
 
-        // Donation.bulkCreate(bulkDonations)
-        //   .then(data => res.status('201').json({ status: 'Success', response: data, charge }))
-        //   .catch(err => res.status(500).send({ status: 'failed', err }))
+        Donation.bulkCreate(bulkDonations)
+          .then(data => res.status('201').json({ status: 'Success', response: data, charge }))
+          .catch(err => res.status(500).send({ status: 'failed', err }))
 
       };
     })

@@ -1,38 +1,7 @@
 const htmlBody = require('./body');
+const styles_donation = require('./styles/donation');
 
 const subject = 'Thank you for your support';
-
-const styles = `
-    .donation_message span,
-    .cause_item span { 
-        color: #008C49; 
-    }
-    .cause_wrapper {
-        display: flex;
-        justify-content: space-around;
-        flex-wrap: wrap;
-        margin: 50px 0;
-        width: 100%;
-    }
-    .cause_item {
-        border-radius: 5px;
-        box-shadow: 3px 3px 5px rgba(0,0,0,0.2);
-        height: 130px;
-        margin: 8px;
-        padding-bottom: 10px;
-        width: 180px;
-    }
-    .cause_item .title {
-        margin-bottom: 5px;
-    }
-    .cause_item .image {
-        background-position: center;
-        background-size: cover;
-        overflow: hidden;
-        width: 180px;
-        height: 115px;
-    }`;
-
 
 const renderCauses = (cart) => {
     let causeList = [];
@@ -57,7 +26,7 @@ const renderCauses = (cart) => {
         <div class="cause_item">
             <div class="image" style="background-image: url(${listItem.mainImage});"></div>
             <p class="title">
-                ${listItem.cause} - <span>$${listItem.amount}</span>
+                <span>$${listItem.amount}</span> - ${listItem.cause}
             </p>
         </div>`
     });
@@ -66,22 +35,23 @@ const renderCauses = (cart) => {
 }
 
 const htmlContent = (mailData) => (
-    `<div>
-        <p>Thank you for supporting these great causes</p>
+    `
+    <h2 class="thank_you">Thank you for supporting these great causes</h2>
+    <div class="main_content">
 
-        <div class="cause_wrapper">
-            ${renderCauses(mailData.cart)}
-        </div>
-
-        <p class="donation_message">
-            Your donation amount: <span>$${mailData.amount / 100}</span>
-        </p>
+        <h1 class="donation_message">
+            Your total donation: <span>$${mailData.amount / 100}</span>
+        </h1>
         <p>
             Click to view your 
             <a href="${mailData.receipt_url}">
                 Stripe Receipt
             </a>
         </p>
+
+        <div class="cause_wrapper">
+            ${renderCauses(mailData.cart)}
+        </div>
     </div>`
 );
 
@@ -92,6 +62,6 @@ exports.template = (mailData) => {
 
     return {
         subject,
-        html: htmlBody(styles, htmlContent, mailData),
+        html: htmlBody(styles_donation, htmlContent, mailData),
     }
 };

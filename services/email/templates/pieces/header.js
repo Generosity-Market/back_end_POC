@@ -1,7 +1,12 @@
 const htmlHeader = (mailData) => (
     `<header>
-        <img src="https://s3.amazonaws.com/generosity-market-mail-assets/White-Text-Generosity-Logo.png" />
-        <p>Welcome ${mailData.email}</p>
+        <table>
+            <tr>
+                <td>
+                    <img src="https://s3.amazonaws.com/generosity-market-mail-assets/Full-Color-Generosity-Logo-Text.png" />
+                </td>
+            </tr>
+        </table>
     </header>`
 );
 

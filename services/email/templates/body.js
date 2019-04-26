@@ -1,11 +1,11 @@
 const htmlHeader = require('./pieces/header.js');
 const htmlFooter = require('./pieces/footer.js');
-const htmlStyles = require('./pieces/styles.js');
+const htmlStyles = require('./styles/main');
 
 const htmlBody = (contentStyles, bodyContent, mailData) => (
     `<html>
         <head>
-            <style>
+            <style type="text/css">
                 ${htmlStyles}
                 ${contentStyles}
             </style>
