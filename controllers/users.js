@@ -165,7 +165,7 @@ exports.editUser = (req, res) => {
     returning: true,
   })
     .then(user => {
-      console.log("User: ", user[1]);
+      // console.log("User: ", user[1]);
       res.status('201').send(user[1][0].dataValues); // Is good until we start updating preferences for the user
 
       //   Preference.update(updatedPrefs, {

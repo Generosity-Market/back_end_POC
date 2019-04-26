@@ -1,8 +1,10 @@
 const stripe = require('stripe')('sk_test_ASY8QP6OPakXsYJNmVFFD4Xu');
 const {
   Donation,
-  Comment
+  Comment,
 } = require('../models/index');
+
+const { sendEmail } = require('../services/email/nodeMailer');
 
 // This route will also add comments (if applicable)
 // TODO for ppl who are not signed in, lets create a user before making the charge. 
@@ -21,7 +23,7 @@ exports.createDonation = (req, res) => {
         amount: amount,
         description: `GenerosityMarket.co - ${cart[0].cause}`,
         currency: 'usd',
-        customer: customer.id
+        customer: customer.id,
       })
     )
     .then(charge => {
@@ -30,18 +32,27 @@ exports.createDonation = (req, res) => {
         let bulkDonations = cart.map(item => {
           return {
             amount: item.amount,
-            userID: userID, // Needs to come from the front end
+            userID: userID,
             causeID: item.causeID,
             email: rest.email,
             stripeID: charge.id,
             stripeCustomerID: charge.customer,
           }
         });
+        // console.log("Charge: ", charge);
+
+        sendEmail('donation', {
+          amount,
+          cart,
+          email: rest.email,
+          receipt_url: charge.receipt_url,
+        });
 
         Donation.bulkCreate(bulkDonations)
           .then(data => res.status('201').json({ status: 'Success', response: data, charge }))
           .catch(err => res.status(500).send({ status: 'failed', err }))
-      }
+
+      };
     })
     .catch(err => {
       res.status(500).send({ status: "failed", error: err });
