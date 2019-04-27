@@ -80,14 +80,14 @@ exports.registerUser = (req, res) => {
 // Login route returns User data w/Preferences
 exports.loginUser = (req, res) => {
   const { email, password } = req.body;
-  console.log("Req: ", req);
+  console.log("Req.body: ", req.body);
 
   if ((!email) || (!password)) {
     res.status(403).send({ error: 'Fields must not be empty.' })
   } else {
     User.findOne({
       where: {
-        email: email
+        email: email.toLowerCase(),
       },
       include: [{
         model: Preference,
@@ -101,7 +101,7 @@ exports.loginUser = (req, res) => {
         res.status(403).send({ error: "Username or password does not match." })
       }
     }).catch(err => {
-      res.status(404).send({ error: err });
+      res.status(404).send({ error: "Could not find user with that email" });
     })
   };
 
