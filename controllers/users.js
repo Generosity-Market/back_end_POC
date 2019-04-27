@@ -60,7 +60,10 @@ exports.registerUser = (req, res) => {
   console.log('User: ', newUser);
 
   if (password === confirmPassword) {
-    User.create(newUser)
+    User.findOrCreate({
+      where: { email: email.toLowerCase() },
+      defaults: { ...newUser },
+    })
       .then(user => {
         Preference.create({ userID: user.id, roundImage, whiteText })
           .then(preferences => {
@@ -69,7 +72,7 @@ exports.registerUser = (req, res) => {
           })
       })
       .catch(error => {
-        res.status('400').send(error);
+        res.status('400').send({ error: "User with that email already exists" });
       });
   } else {
     res.status('403').send({ error: "Passwords do not match.", body: req.body })
