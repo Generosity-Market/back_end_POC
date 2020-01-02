@@ -12,7 +12,6 @@ const transporter = nodemailer.createTransport({
 });
 
 const getMailOptions = (type, mailData) => {
-
     const { subject, html } = templates[type](mailData);
 
     return {
@@ -24,7 +23,6 @@ const getMailOptions = (type, mailData) => {
 };
 
 exports.sendEmail = (type, mailData) => {
-
     const options = getMailOptions(type, mailData);
 
     transporter.sendMail(options, function (error, info) {
