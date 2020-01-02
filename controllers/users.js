@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const BasicStrategy = require('passport-http').BasicStrategy;
+const awsUtils = require('../utilities/awsUploads');
 
 const {
   User,
@@ -111,42 +112,49 @@ exports.loginUser = (req, res) => {
 };
 
 // Get all users w/Preferences
-exports.getAllUsers = (req, res) => {
-  // TODO research why the include statement doesnt actually include the preferences only in this route
-  User.findAll({
-    include: [{
-      model: Preference,
-      as: 'Preferences'
-    }]
-  })
-    .then(user => {
-      res.status('200').json(user);
-    })
-    .catch(error => {
-      res.status('500').json(error);
-    })
-
-};
-
-// Get a user by id w/Preferences & Causes
-exports.getUserById = (req, res) => {
-
-  User.findOne({
-    where: {
-      id: req.params.id
-    },
-    include: [{
-      model: Preference,
-      as: 'Preferences'
-    }]
-  })
-    .then(user => {
-      res.status(200).send(user);
-    })
-    .catch(error => {
-      res.status(500).send(error);
+exports.getAllUsers = async (req, res) => {
+  // TODO: research why the include statement doesnt actually include the preferences only in this route
+  try {
+    const user = await User.findAll({
+      include: [{
+        model: Preference,
+        as: 'Preferences'
+      }]
     });
 
+    if (user === null) {
+      return res.status(404).send('No users found.');
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+
+    return res.status(500).json(error);
+  }
+}
+
+// Get a user by id w/Preferences & Causes
+exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        id: req.params.id
+      },
+      include: [{
+        model: Preference,
+        as: 'Preferences'
+      }]
+    });
+
+    if (user === null) {
+      return res.status(404).send('User not found.');
+    }
+
+    return res.status(200).send(user);
+  } catch (error) {
+
+    return res.status(500).send(error);
+  }
 };
 
 // Edit users details
@@ -193,6 +201,27 @@ exports.editUser = (req, res) => {
 
 };
 
+exports.setUserImage = async (req, res) => {
+
+  const reqData = await awsUtils.parseUploadData(req);
+  const imageChanges = await awsUtils.findOrCreateFile(reqData);
+
+  try {
+    const user = await User.update(imageChanges, {
+      where: {
+        id: req.params.id,
+      },
+      returning: true,
+    });
+
+    if (user === null) return res.status(404).send('User not found.');
+
+    return res.status('201').json(user[1][0]);
+  } catch (error) {
+    return res.status(500).send(error);
+  }
+}
+
 exports.getUserCauses = (req, res) => {
   // Get causes by the users id
   Cause.findAll({
@@ -228,30 +257,30 @@ exports.getUserCauses = (req, res) => {
     });
 }
 
-exports.getSupportedCauses = (req, res) => {
-  // Get Causes that have Donations made by the user (Search by userID)
-  Cause.findAll({
-    // attributes: ['name', 'mainImage', 'id'],
-    include: [{
-      where: {
-        userID: req.params.id,
-      },
-      model: Donation,
-      as: 'Donations',
-      attributes: ['amount', 'updatedAt', 'userID'],
-    }]
-  })
-    .then(donations => {
-      if (donations) {
-        res.status(200).json(donations);
-      } else {
-        res.status(404).send({ error: "No Donations found" });
-      }
-    })
-    .catch(err => {
-      console.log("Error: ", err)
-      res.status(500).json(err);
+exports.getSupportedCauses = async (req, res) => {
+  try {
+    // Get Causes that have Donations made by the user (Search by userID)
+    const donations = await Cause.findAll({
+      // attributes: ['name', 'mainImage', 'id'],
+      include: [{
+        where: {
+          userID: req.params.id,
+        },
+        model: Donation,
+        as: 'Donations',
+        attributes: ['amount', 'updatedAt', 'userID'],
+      }]
     });
+
+    if (donations) {
+      return res.status(200).json(donations);
+    } else {
+      return res.status(404).send({ error: "No Donations found" });
+    }
+  } catch (error) {
+    console.log("Error: ", err)
+    return res.status(500).json(err);
+  }
 }
 
 // Delete a user from the db
