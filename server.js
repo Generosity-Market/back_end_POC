@@ -1,12 +1,18 @@
 require('dotenv').config();
-const express           = require("express");
-const path              = require("path");
-const morgan            = require("morgan");
-const bcrypt            = require("bcrypt");
-const passport          = require('passport');
-const bodyParser        = require("body-parser");
-const routes            = require("./routes/index");
-const BasicStrategy     = require('passport-http').BasicStrategy;
+const express = require("express");
+const path = require("path");
+const morgan = require("morgan");
+const bcrypt = require("bcrypt");
+const passport = require('passport');
+const bodyParser = require("body-parser");
+const routes = require("./routes/index");
+const users = require("./routes/users");
+const causes = require("./routes/causes");
+const donations = require("./routes/donations");
+const comments = require("./routes/comments");
+const organizations = require("./routes/organizations");
+const preferences = require("./routes/preferences");
+const BasicStrategy = require('passport-http').BasicStrategy;
 
 const app = express();
 
@@ -14,7 +20,7 @@ const app = express();
 app.set('port', (process.env.PORT || 3000));
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(morgan("dev"));
 
 app.use(passport.initialize());
@@ -60,8 +66,14 @@ passport.deserializeUser((id, done) => {
 })
 
 app.use('/api', routes);
+app.use('/api/users', users);
+app.use('/api/causes', causes);
+app.use('/api/donations', donations);
+app.use('/api/comments', comments);
+app.use('/api/organizations', organizations);
+app.use('/api/preferences', preferences);
 
-app.use(routes);
+// app.use(routes);
 
 // the "if" is used for testing.
 // getting the port from above..do this for production instead of localhost:3000
