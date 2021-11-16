@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/Generosity-Market/back_end_POC#readme",
   "dependencies": {
-    "aws-sdk": "^2.315.0",
+    "aws-sdk": "^2.814.0",
     "bcrypt": "^3.0.6",
     "bluebird": "^3.5.2",
     "body-parser": "^1.18.2",
